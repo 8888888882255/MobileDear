@@ -1,0 +1,43 @@
+{
+  "expo": {
+    "name": "DearMoment",
+    "slug": "DearMoment",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "myapp",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.rork.fashion-shop-app-b0fv3prh-8ac1m3y7"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.thiennguyenbeta1.DearMoment"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "owner": "thiennguyenbeta1",
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "cd941ddf-aa05-4e74-a0c4-8a7a3ea55f10"
+      }
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
