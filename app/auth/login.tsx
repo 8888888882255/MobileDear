@@ -53,28 +53,26 @@ export default function LoginScreen() {
       const success = await login(email, password);
       
       if (success) {
-        Alert.alert(
-          'Đăng nhập thành công',
-          'Chào mừng bạn trở lại!',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.replace('/')
-            }
-          ]
-        );
+        // Navigate immediately on success
+        router.replace('/');
       } else {
-        Alert.alert(
-          'Đăng nhập thất bại',
-          'Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.'
-        );
+        if (Platform.OS === 'web') {
+          window.alert('Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.');
+        } else {
+          Alert.alert(
+            'Đăng nhập thất bại',
+            'Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.'
+          );
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
-      Alert.alert(
-        'Lỗi',
-        'Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng và thử lại.'
-      );
+      const errorMessage = 'Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng và thử lại.';
+      if (Platform.OS === 'web') {
+        window.alert(errorMessage);
+      } else {
+        Alert.alert('Lỗi', errorMessage);
+      }
     }
   };
 
@@ -132,10 +130,10 @@ export default function LoginScreen() {
             />
 
             <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Bạn chưa có tài khoản? </Text>
+              <Text style={styles.registerText}>Bạn chưa có tài khoản?</Text>
               <TouchableOpacity onPress={() => router.push('/auth/register')} style={styles.registerLinkContainer}>
                 <UserPlus size={16} color={colors.primary} />
-                <Text style={styles.registerLink}>Đăng ký</Text>
+                <Text style={styles.registerLink}> Đăng ký</Text>
               </TouchableOpacity>
             </View>
           </View>

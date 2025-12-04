@@ -1,22 +1,38 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { LoginRequest, LoginResponse } from '@/types';
 
 export class AuthService {
   private static getApiUrl(): string {
-    // Fallback URL for development
-    const fallbackUrl = 'http://localhost:5083/api';
-    
-    // Try to get from app.json config
+    // Get from app.json config first
     const configUrl = Constants.expoConfig?.extra?.apiUrl;
+    if (configUrl) {
+      // Ensure /api suffix
+      return configUrl.endsWith('/api') ? configUrl : `${configUrl}/api`;
+    }
     
-    console.log('AuthService - API URL Config:', {
-      configUrl,
-      fallbackUrl,
-      constants: Constants.expoConfig?.extra
-    });
+    // Auto-detect based on platform for development
+    // Replace YOUR_LOCAL_IP with your actual WiFi IP
+    const LOCAL_IP = '192.168.1.11'; // Thay bằng IP WiFi của bạn
+    const PORT = '5083';
     
-    return configUrl || fallbackUrl;
+    if (Platform.OS === 'web') {
+      return `http://localhost:${PORT}/api`;
+    } else if (Platform.OS === 'android') {
+      // Android Emulator uses 10.0.2.2 for localhost
+      // Real device needs actual IP
+      if (__DEV__ && !Constants.isDevice) {
+        return `http://10.0.2.2:${PORT}/api`;
+      }
+      return `http://${LOCAL_IP}:${PORT}/api`;
+    } else {
+      // iOS Simulator can use localhost, real device needs IP
+      if (__DEV__ && !Constants.isDevice) {
+        return `http://localhost:${PORT}/api`;
+      }
+      return `http://${LOCAL_IP}:${PORT}/api`;
+    }
   }
 
   private static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

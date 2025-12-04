@@ -37,6 +37,7 @@ export const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   style,
   textStyle,
+  leftIcon,
   ...props
 }) => {
   const getButtonStyles = (): ViewStyle[] => {
@@ -131,6 +132,9 @@ export const Button: React.FC<ButtonProps> = ({
         />
       ) : (
         <View style={styles.contentContainer}>
+          {leftIcon && (
+            <View style={styles.iconContainer}>{leftIcon}</View>
+          )}
           {icon && iconPosition === 'left' && (
             <View style={styles.iconContainer}>{icon}</View>
           )}

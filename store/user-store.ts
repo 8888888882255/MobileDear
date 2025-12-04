@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User, Address } from '@/types';
-import { AuthService } from '@/services/authService';
+import { AuthService } from '@/src/services/authService';
 import { NguoiDungView } from '@/types';
 
 interface UserState {
