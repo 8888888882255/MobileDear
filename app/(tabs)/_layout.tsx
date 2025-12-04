@@ -52,39 +52,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="posts"
-        options={{
-          title: "Cộng Đồng",
-          tabBarIcon: ({ color }) => (
-            <TabBarIcon name={<Users size={24} color={color} />} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="cart"
-        options={{
-          title: "Giỏ Hàng",
-          tabBarIcon: ({ color }) => (
-            <View>
-              <TabBarIcon
-                name={<ShoppingBag size={24} color={color} />}
-                color={color}
-              />
-              {cartItemCount > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
-                    {cartItemCount > 99 ? "99+" : cartItemCount}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="wishlist"
         options={{
-          title: "Danh Sách Yêu Thích",
+          title: "Yêu Thích",
           tabBarIcon: ({ color }) => (
             <TabBarIcon name={<Heart size={24} color={color} />} color={color} />
           ),
