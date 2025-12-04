@@ -99,3 +99,31 @@ export interface Comment {
   content: string;
   createdAt: string;
 }
+
+// API Response interfaces
+export interface LoginResponse {
+  token: string;
+  user: NguoiDungView;
+}
+
+export interface NguoiDungView {
+  maNguoiDung: number;
+  hoTen: string;
+  ngaySinh?: string;
+  sdt?: string;
+  email: string;
+  taiKhoan: string;
+  vaiTro: number;
+  trangThai: number;
+  avt?: string;
+  tieuSu?: string;
+  ngayTao: string;
+  timeKhoa?: string;
+  gioiTinh: number;
+}
+
+// Auth API interfaces
+export interface LoginRequest {
+  taiKhoan: string;
+  matKhau: string;
+}

@@ -19,22 +19,18 @@ import colors from '@/constants/colors';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useUserStore();
+  const { login, isLoading } = useUserStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
-  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     let isValid = true;
     const newErrors = { email: '', password: '' };
 
     if (!email.trim()) {
-      newErrors.email = 'Vui lòng nhập email';
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email không hợp lệ';
+      newErrors.email = 'Vui lòng nhập email hoặc tên tài khoản.';
       isValid = false;
     }
 
@@ -50,38 +46,36 @@ export default function LoginScreen() {
     return isValid;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
-
-    setTimeout(() => {
-      if (email === 'admin@example.com' && password === 'password') {
-        login({
-          id: '1',
-          name: 'Quản trị viên',
-          email: 'admin@example.com',
-          isAdmin: true,
-          addresses: [],
-        });
-        router.replace('/');
-      } else if (email === 'user@example.com' && password === 'password') {
-        login({
-          id: '2',
-          name: 'Người dùng',
-          email: 'user@example.com',
-          isAdmin: false,
-          addresses: [],
-        });
-        router.replace('/');
+    try {
+      const success = await login(email, password);
+      
+      if (success) {
+        Alert.alert(
+          'Đăng nhập thành công',
+          'Chào mừng bạn trở lại!',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/')
+            }
+          ]
+        );
       } else {
         Alert.alert(
           'Đăng nhập thất bại',
-          "Email hoặc mật khẩu không đúng. Vui lòng thử lại với admin@example.com hoặc user@example.com và mật khẩu 'password'."
+          'Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.'
         );
       }
-      setIsLoading(false);
-    }, 1500);
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert(
+        'Lỗi',
+        'Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng và thử lại.'
+      );
+    }
   };
 
   return (
@@ -98,8 +92,8 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <Input
-              label="Email"
-              placeholder="Nhập email"
+              label="Email hoặc Tài khoản"
+              placeholder="Nhập email hoặc tài khoản"
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -122,9 +116,10 @@ export default function LoginScreen() {
               style={styles.forgotPasswordButton}
               onPress={() => router.push('/auth/forgot-password')}
             >
-              <Text style={styles.forgotPasswordText}>
-                <KeyRound size={16} color={colors.primary} /> Quên mật khẩu?
-              </Text>
+              <View style={styles.forgotPasswordContent}>
+                <KeyRound size={16} color={colors.primary} />
+                <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+              </View>
             </TouchableOpacity>
 
             <Button
@@ -138,18 +133,11 @@ export default function LoginScreen() {
 
             <View style={styles.registerContainer}>
               <Text style={styles.registerText}>Bạn chưa có tài khoản? </Text>
-              <TouchableOpacity onPress={() => router.push('/auth/register')}>
-                <Text style={styles.registerLink}>
-                  <UserPlus size={16} color={colors.primary} /> Đăng ký
-                </Text>
+              <TouchableOpacity onPress={() => router.push('/auth/register')} style={styles.registerLinkContainer}>
+                <UserPlus size={16} color={colors.primary} />
+                <Text style={styles.registerLink}>Đăng ký</Text>
               </TouchableOpacity>
             </View>
-          </View>
-
-          <View style={styles.demoCredentials}>
-            <Text style={styles.demoTitle}>Tài khoản demo:</Text>
-            <Text style={styles.demoText}>Quản trị: admin@example.com / password</Text>
-            <Text style={styles.demoText}>Người dùng: user@example.com / password</Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -166,11 +154,13 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, color: colors.textLight },
   form: { marginBottom: 24 },
   forgotPasswordButton: { alignSelf: 'flex-end', marginBottom: 24 },
-  forgotPasswordText: { color: colors.primary, fontSize: 14 },
+  forgotPasswordContent: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  forgotPasswordText: { color: colors.primary, fontSize: 14, marginLeft: 4 },
   loginButton: { marginBottom: 16 },
-  registerContainer: { flexDirection: 'row', justifyContent: 'center', marginTop: 8 },
+  registerContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 8 },
   registerText: { color: colors.textLight, fontSize: 14 },
-  registerLink: { color: colors.primary, fontSize: 14, fontWeight: '500' },
+  registerLinkContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  registerLink: { color: colors.primary, fontSize: 14, fontWeight: '500', marginLeft: 4 },
   demoCredentials: {
     marginTop: 40, padding: 16, backgroundColor: colors.card, borderRadius: 8,
     borderLeftWidth: 4, borderLeftColor: colors.primary,
