@@ -1,29 +1,27 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image,
+  Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  User,
-  Package,
-  Heart,
-  MapPin,
-  Settings,
+import { 
+  User, 
+  Package, 
+  Heart, 
+  MapPin, 
+  Settings, 
   LogOut,
   ChevronRight,
   ShieldCheck,
   Ticket,
   MessageSquare,
   Lock,
-  FileText,
-  Pencil,
-  Newspaper,
+  FileText
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
 import { PostCard } from '@/components/PostCard';
@@ -36,144 +34,194 @@ export default function ProfileScreen() {
   const { user, isAuthenticated, logout } = useUserStore();
   const { getUserPosts } = usePostsStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-
+  
   const userPosts = user ? getUserPosts(user.id) : [];
-
+  
   const handleLogin = () => {
     router.push('/auth/login');
   };
-
+  
   const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Đăng xuất',
-        style: 'destructive',
-        onPress: () => {
-          setIsLoggingOut(true);
-          setTimeout(() => {
-            logout();
-            setIsLoggingOut(false);
-          }, 1000);
-        },
-      },
-    ]);
+    Alert.alert(
+      "Logout",
+      "Are you sure you want to logout?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Logout", 
+          style: "destructive", 
+          onPress: () => {
+            setIsLoggingOut(true);
+            // Simulate logout process
+            setTimeout(() => {
+              logout();
+              setIsLoggingOut(false);
+            }, 1000);
+          } 
+        }
+      ]
+    );
   };
-
+  
+  const navigateToAdminDashboard = () => {
+    router.push('/admin/dashboard');
+  };
+  
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
         <View style={styles.notLoggedInContainer}>
           <User size={64} color={colors.textLight} />
-          <Text style={styles.notLoggedInTitle}>Chưa đăng nhập</Text>
+          <Text style={styles.notLoggedInTitle}>Not logged in</Text>
           <Text style={styles.notLoggedInSubtitle}>
-            Vui lòng đăng nhập để xem hồ sơ, đơn hàng và nhiều hơn nữa
+            Login to view your profile, orders, and more
           </Text>
-          <Button title="Đăng nhập" onPress={handleLogin} style={styles.loginButton} />
-          <TouchableOpacity onPress={() => router.push('/auth/register')} style={styles.registerButton}>
-            <Text style={styles.registerButtonText}>Chưa có tài khoản? Đăng ký</Text>
+          <Button
+            title="Login"
+            onPress={handleLogin}
+            style={styles.loginButton}
+          />
+          <TouchableOpacity 
+            onPress={() => router.push('/auth/register')}
+            style={styles.registerButton}
+          >
+            <Text style={styles.registerButtonText}>
+              Don't have an account? Register
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
-
+  
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <TouchableOpacity style={styles.profileHeader} onPress={() => router.push('/profile/edit')}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             {user?.avatar ? (
-              <Image source={{ uri: user.avatar }} style={styles.avatar} />
+              <Image 
+                source={{ uri: user.avatar }} 
+                style={styles.avatar} 
+              />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitial}>{user?.name.charAt(0).toUpperCase()}</Text>
+                <Text style={styles.avatarInitial}>
+                  {user?.name.charAt(0).toUpperCase()}
+                </Text>
               </View>
             )}
           </View>
-
+          
           <View style={styles.profileInfo}>
             <Text style={styles.userName}>{user?.name}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
           </View>
-
-          <Pencil size={20} color={colors.primary} />
-        </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.editProfileButton}
+            onPress={() => router.push('/profile/edit')}
+          >
+            <Text style={styles.editProfileText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+        
+        {user?.isAdmin && (
+          <TouchableOpacity 
+            style={[styles.menuItem, styles.adminMenuItem]}
+            onPress={navigateToAdminDashboard}
+          >
+            <View style={styles.menuItemLeft}>
+              <ShieldCheck size={20} color="#fff" />
+              <Text style={styles.adminMenuItemText}>Admin Dashboard</Text>
+            </View>
+            <ChevronRight size={20} color="#fff" />
+          </TouchableOpacity>
+        )}
+        
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Tài khoản của tôi</Text>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/orders')}>
+          <Text style={styles.menuSectionTitle}>My Account</Text>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/orders')}
+          >
             <View style={styles.menuItemLeft}>
               <Package size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Đơn hàng</Text>
+              <Text style={styles.menuItemText}>My Orders</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/posts')}>
-            <View style={styles.menuItemLeft}>
-              <Package size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Đơn hàng</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/wishlist')}>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/wishlist')}
+          >
             <View style={styles.menuItemLeft}>
               <Heart size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Yêu thích</Text>
+              <Text style={styles.menuItemText}>Wishlist</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/addresses')}>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/addresses')}
+          >
             <View style={styles.menuItemLeft}>
               <MapPin size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Địa chỉ</Text>
+              <Text style={styles.menuItemText}>Addresses</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/vouchers')}>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/vouchers')}
+          >
             <View style={styles.menuItemLeft}>
               <Ticket size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Voucher</Text>
+              <Text style={styles.menuItemText}>My Vouchers</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile/change-password')}>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/profile/change-password')}
+          >
             <View style={styles.menuItemLeft}>
               <Lock size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Đổi mật khẩu</Text>
+              <Text style={styles.menuItemText}>Change Password</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
         </View>
-
+        
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Cài đặt & Hỗ trợ</Text>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/privacy-policy')}>
+          <Text style={styles.menuSectionTitle}>Settings & Support</Text>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/settings')}
+          >
             <View style={styles.menuItemLeft}>
               <Settings size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Chính sách</Text>
+              <Text style={styles.menuItemText}>App Settings</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/contact')}>
+          
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/contact')}
+          >
             <View style={styles.menuItemLeft}>
               <MessageSquare size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Liên hệ</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/newsletter')}>
-            <View style={styles.menuItemLeft}>
-              <Newspaper size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Bản tin</Text>
+              <Text style={styles.menuItemText}>Contact Us</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
@@ -182,21 +230,24 @@ export default function ProfileScreen() {
         {userPosts.length > 0 && (
           <View style={styles.menuSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.menuSectionTitle}>Bài viết của tôi</Text>
-              <TouchableOpacity onPress={() => router.push(`/posts/user/${user?.id}`)} style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>Xem tất cả</Text>
+              <Text style={styles.menuSectionTitle}>My Posts</Text>
+              <TouchableOpacity 
+                onPress={() => router.push(`/posts/user/${user?.id}`)}
+                style={styles.viewAllButton}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
                 <ChevronRight size={16} color={colors.primary} />
               </TouchableOpacity>
             </View>
-
+            
             {userPosts.slice(0, 2).map((post) => (
               <PostCard key={post.id} post={post} />
             ))}
           </View>
         )}
-
+        
         <Button
-          title="Đăng xuất"
+          title="Logout"
           variant="outline"
           onPress={handleLogout}
           loading={isLoggingOut}
@@ -256,6 +307,18 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: colors.textLight,
+  },
+  editProfileButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  editProfileText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
   },
   menuSection: {
     marginBottom: 24,
