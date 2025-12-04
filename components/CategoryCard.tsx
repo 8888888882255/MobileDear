@@ -22,15 +22,16 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
   const router = useRouter();
 
   const getContainerStyle = () => {
+    // Reduce linear dimensions by half so area becomes 1/4 of original
     switch (size) {
       case 'small':
-        return { width: 120, height: 120 };
+        return { width: 60, height: 60 };
       case 'medium':
-        return { width: 160, height: 160 };
+        return { width: 80, height: 80 };
       case 'large':
-        return { width: 200, height: 200 };
+        return { width: 100, height: 100 };
       default:
-        return { width: 160, height: 160 };
+        return { width: 80, height: 80 };
     }
   };
 
@@ -47,7 +48,7 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
         <View style={styles.overlay}>
           <Text style={styles.name}>{category.name}</Text>
           <Text style={styles.itemCount}>
-            {category.subcategories.length} Danh mục con
+            {category.typeLabel ? category.typeLabel : `${category.productCount || 0} Sản phẩm`}
           </Text>
         </View>
       </ImageBackground>

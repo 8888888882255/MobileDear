@@ -65,7 +65,9 @@ export interface Category {
   id: string;
   name: string;
   image: string;
-  subcategories: string[];
+  productCount?: number;
+  subcategories?: string[];
+  typeLabel?: string;
 }
 
 export interface Banner {
