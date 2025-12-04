@@ -10,9 +10,12 @@ import {
   TouchableOpacity,
   Dimensions,
   SafeAreaView,
-  Alert
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import Constants from 'expo-constants';
+import { Product } from '@/types';
 import {
   Heart,
   Star,
@@ -23,7 +26,6 @@ import {
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
 import { ProductReview } from '@/components/ProductReview';
-import { products } from '@/mocks/products';
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { useUserStore } from '@/store/user-store';
@@ -62,22 +64,86 @@ const mockReviews = [
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const product = products.find((p) => p.id === id);
+
+  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+  const pid = Array.isArray(id) ? id[0] : id;
+  const productDetailUrl = (idValue: string | number) => `${API_URL}/api/SanPham/${idValue}`;
+
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch product by id from backend
+  React.useEffect(() => {
+    let mounted = true;
+    const fetchProduct = async () => {
+      if (!pid) return;
+      setIsLoading(true);
+      try {
+        const res = await fetch(productDetailUrl(pid));
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`API error ${res.status}: ${txt}`);
+        }
+        const data = await res.json();
+
+        // Map API response to app Product type
+        const mapped: Product = {
+          id: String(data.maSanPham),
+          name: data.tenSanPham,
+          description: data.moTa || '',
+          price: data.giaBan || 0,
+          discountPrice: data.giaSauSale ?? data.giaSale ?? undefined,
+          images: (data.medias || []).map((m: any) => {
+            const path = m.duongDan || '';
+            if (path.startsWith('http') || path.startsWith('data:')) return path;
+            return `${API_URL}${path}`;
+          }),
+          category: data.tenLoai || '',
+          subcategory: data.tenThuongHieu || undefined,
+          sizes: [],
+          colors: [],
+          tags: [],
+          rating: data.danhGiaTrungBinh ?? 0,
+          reviewCount: data.soLuongDanhGia ?? 0,
+          stock: data.soLuong ?? 0,
+          featured: false,
+          createdAt: data.ngayTao ?? new Date().toISOString(),
+          updatedAt: data.ngayTao ?? new Date().toISOString(),
+        };
+
+        if (mounted) setProduct(mapped);
+      } catch (err) {
+        console.error('Fetch product error:', err);
+        Alert.alert('Lỗi', 'Không thể tải thông tin sản phẩm.');
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    fetchProduct();
+    return () => { mounted = false; };
+  }, [pid]);
 
   const { addItem: addToCart } = useCartStore();
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
   const { isAuthenticated } = useUserStore();
 
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState('');
-  const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.notFoundContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={[styles.notFoundText, { marginTop: 12 }]}>Đang tải sản phẩm...</Text>
+      </SafeAreaView>
+    );
+  }
 
-  if (!product) {
+  if (!product && !isLoading) {
     return (
       <SafeAreaView style={styles.notFoundContainer}>
         <Text style={styles.notFoundText}>Không tìm thấy sản phẩm</Text>
@@ -86,26 +152,22 @@ export default function ProductDetailScreen() {
     );
   }
 
-  const handleAddToCart = () => {
-    if (!selectedSize) {
-      Alert.alert('Vui lòng chọn kích cỡ');
-      return;
-    }
-    if (!selectedColor) {
-      Alert.alert('Vui lòng chọn màu sắc');
-      return;
-    }
+  // TypeScript narrowing: product is guaranteed non-null here (we returned above),
+  // but help the compiler by asserting for local use.
+  if (!product) return null;
 
+  const handleAddToCart = () => {
     setIsAddingToCart(true);
     setTimeout(() => {
-      addToCart(product, quantity, selectedSize, selectedColor);
+      // Sizes/colors removed; pass empty strings as placeholders
+      addToCart(product!, quantity, '', '');
       setIsAddingToCart(false);
       Alert.alert('Thành công', 'Sản phẩm đã được thêm vào giỏ hàng');
     }, 500);
   };
 
   const handleToggleWishlist = () => {
-    isWishlisted ? removeFromWishlist(product.id) : addToWishlist(product);
+    isWishlisted ? removeFromWishlist(product!.id) : addToWishlist(product!);
   };
 
   const handleIncreaseQuantity = () => {
@@ -213,49 +275,7 @@ export default function ProductDetailScreen() {
             )}
           </View>
 
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Chọn kích cỡ</Text>
-            <View style={styles.optionsContainer}>
-              {product.sizes.map((size) => (
-                <TouchableOpacity
-                  key={size}
-                  style={[styles.sizeOption, selectedSize === size && styles.selectedOption]}
-                  onPress={() => setSelectedSize(size)}
-                >
-                  <Text
-                    style={[
-                      styles.sizeText,
-                      selectedSize === size && styles.selectedOptionText,
-                    ]}
-                  >
-                    {size}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Chọn màu sắc</Text>
-            <View style={styles.optionsContainer}>
-              {product.colors.map((color) => (
-                <TouchableOpacity
-                  key={color}
-                  style={[styles.colorOption, selectedColor === color && styles.selectedOption]}
-                  onPress={() => setSelectedColor(color)}
-                >
-                  <Text
-                    style={[
-                      styles.colorText,
-                      selectedColor === color && styles.selectedOptionText,
-                    ]}
-                  >
-                    {color}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+          {/* Size and color selection removed per request */}
 
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Số lượng</Text>

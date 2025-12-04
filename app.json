@@ -35,7 +35,7 @@
       "eas": {
         "projectId": "cd941ddf-aa05-4e74-a0c4-8a7a3ea55f10"
       },
-      "apiUrl": "http://0.0.0.0:5083/api"
+      "apiUrl": "http://192.168.1.11:5083"
     },
     "experiments": {
       "typedRoutes": true

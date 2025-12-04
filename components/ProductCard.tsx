@@ -42,6 +42,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   };
 
   const calculateDiscount = () => {
+    // Prefer an explicit sale percent if provided by the product data
+    // (e.g. mapped from API's `phanTramSale`). Otherwise fallback to
+    // calculating from discountPrice/price.
+    const anyProd = product as any;
+    if (anyProd.salePercent !== undefined && anyProd.salePercent !== null) {
+      return `Giảm ${anyProd.salePercent}%`;
+    }
+
     if (!product.discountPrice) return null;
     const percent = Math.round((1 - product.discountPrice / product.price) * 100);
     return `Giảm ${percent}%`;
@@ -85,7 +93,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </View>
 
         <View style={styles.infoContainer}>
-          <Text style={styles.category}>{product.category}</Text>
           <Text style={styles.name} numberOfLines={1}>{product.name}</Text>
 
           <View style={styles.priceContainer}>
@@ -150,11 +157,6 @@ const styles = StyleSheet.create({
   },
   infoContainer: {
     padding: 12,
-  },
-  category: {
-    fontSize: 12,
-    color: colors.textLight,
-    marginBottom: 4,
   },
   name: {
     fontSize: 14,
