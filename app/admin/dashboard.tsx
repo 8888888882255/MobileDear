@@ -80,15 +80,15 @@ export default function AdminDashboardScreen() {
               onPress={() => router.push('/admin/products')}
             >
               <ShoppingBag size={24} color={colors.primary} />
-              <Text style={styles.actionText}>Manage Products</Text>
+              <Text style={styles.actionText}>Sản Phẩm</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => router.push('/admin/orders')}
+              onPress={() => router.push('/admin/categorys')}
             >
               <Package size={24} color={colors.primary} />
-              <Text style={styles.actionText}>Manage Orders</Text>
+              <Text style={styles.actionText}>Danh Mục</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -101,10 +101,10 @@ export default function AdminDashboardScreen() {
             
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={() => router.push('/admin/analytics')}
+              onPress={() => router.push('/admin/comments')}
             >
               <BarChart4 size={24} color={colors.primary} />
-              <Text style={styles.actionText}>Analytics</Text>
+              <Text style={styles.actionText}>Bình Luận</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
