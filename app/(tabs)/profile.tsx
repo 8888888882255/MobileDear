@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -21,7 +21,8 @@ import {
   Ticket,
   MessageSquare,
   Lock,
-  FileText
+  FileText,
+  RefreshCw
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
 import { PostCard } from '@/components/PostCard';
@@ -31,9 +32,17 @@ import colors from '@/constants/colors';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useUserStore();
+  const { user, isAuthenticated, logout, refreshUserProfile } = useUserStore();
   const { getUserPosts } = usePostsStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      // Refresh user profile when component mounts
+      handleRefreshProfile();
+    }
+  }, []);
   
   const userPosts = user ? getUserPosts(user.id) : [];
   
@@ -41,22 +50,33 @@ export default function ProfileScreen() {
     router.push('/auth/login');
   };
   
+  const handleRefreshProfile = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshUserProfile();
+    } catch (error) {
+      console.error('Failed to refresh profile:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
+      "Đăng xuất",
+      "Bạn có chắc chắn muốn đăng xuất?",
       [
-        { text: "Cancel", style: "cancel" },
+        { text: "Hủy", style: "cancel" },
         { 
-          text: "Logout", 
+          text: "Đăng xuất", 
           style: "destructive", 
-          onPress: () => {
+          onPress: async () => {
             setIsLoggingOut(true);
-            // Simulate logout process
-            setTimeout(() => {
-              logout();
+            try {
+              await logout();
+            } finally {
               setIsLoggingOut(false);
-            }, 1000);
+            }
           } 
         }
       ]
@@ -121,12 +141,25 @@ export default function ProfileScreen() {
             <Text style={styles.userEmail}>{user?.email}</Text>
           </View>
           
-          <TouchableOpacity 
-            style={styles.editProfileButton}
-            onPress={() => router.push('/profile/edit')}
-          >
-            <Text style={styles.editProfileText}>Edit</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={handleRefreshProfile}
+              disabled={isRefreshing}
+            >
+              <RefreshCw 
+                size={16} 
+                color={isRefreshing ? colors.textLight : colors.primary} 
+                style={isRefreshing ? { transform: [{ rotate: '360deg' }] } : undefined}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.editProfileButton}
+              onPress={() => router.replace('/profile/edit')}
+            >
+              <Text style={styles.editProfileText}>Chỉnh sửa</Text>
+            </TouchableOpacity>
+          </View>
         </View>
         
         {user?.isAdmin && (
@@ -147,7 +180,7 @@ export default function ProfileScreen() {
           
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/orders')}
+            onPress={() => console.log('Orders navigation - to be implemented')}
           >
             <View style={styles.menuItemLeft}>
               <Package size={20} color={colors.text} />
@@ -169,7 +202,7 @@ export default function ProfileScreen() {
           
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/addresses')}
+            onPress={() => console.log('Addresses navigation - to be implemented')}
           >
             <View style={styles.menuItemLeft}>
               <MapPin size={20} color={colors.text} />
@@ -180,7 +213,7 @@ export default function ProfileScreen() {
           
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/vouchers')}
+            onPress={() => console.log('Vouchers navigation - to be implemented')}
           >
             <View style={styles.menuItemLeft}>
               <Ticket size={20} color={colors.text} />
@@ -206,7 +239,7 @@ export default function ProfileScreen() {
           
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/settings')}
+            onPress={() => console.log('Settings navigation - to be implemented')}
           >
             <View style={styles.menuItemLeft}>
               <Settings size={20} color={colors.text} />
@@ -217,7 +250,7 @@ export default function ProfileScreen() {
           
           <TouchableOpacity 
             style={styles.menuItem}
-            onPress={() => router.push('/contact')}
+            onPress={() => console.log('Contact navigation - to be implemented')}
           >
             <View style={styles.menuItemLeft}>
               <MessageSquare size={20} color={colors.text} />
@@ -232,7 +265,7 @@ export default function ProfileScreen() {
             <View style={styles.sectionHeader}>
               <Text style={styles.menuSectionTitle}>My Posts</Text>
               <TouchableOpacity 
-                onPress={() => router.push(`/posts/user/${user?.id}`)}
+                onPress={() => console.log('User posts navigation - to be implemented')}
                 style={styles.viewAllButton}
               >
                 <Text style={styles.viewAllText}>View All</Text>
@@ -319,6 +352,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.primary,
     fontWeight: '500',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  refreshButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuSection: {
     marginBottom: 24,

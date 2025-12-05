@@ -1,53 +1,101 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, SafeAreaView,
-  KeyboardAvoidingView, Platform, ScrollView, Alert, Image
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { User, Mail, Phone, ChevronLeft, Camera, Calendar, MapPin } from 'lucide-react-native';
+import { ArrowLeft, Save, User, Mail, Phone, Calendar, FileText } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
-import * as ImagePicker from 'expo-image-picker';
 import colors from '@/constants/colors';
+
+interface EditProfileData {
+  name: string;
+  email: string;
+  phone: string;
+  bio: string;
+  gender: number;
+  birthDate: string;
+}
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, updateProfile } = useUserStore();
+  const { user, updateUserProfile, isLoading } = useUserStore();
 
-  const [name, setName] = useState(user?.name || '');
-  const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState(user?.phone || '');
-  const [birthday, setBirthday] = useState('');
-  const [address, setAddress] = useState('');
-  const [avatar, setAvatar] = useState<string | undefined>(user?.avatar);
-  const [errors, setErrors] = useState({ name: '', email: '', phone: '' });
-  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState<EditProfileData>({
+    name: '',
+    email: '',
+    phone: '',
+    bio: '',
+    gender: 0,
+    birthDate: ''
+  });
+
+  const [errors, setErrors] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    birthDate: ''
+  });
+
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (!user) {
-      router.replace('/auth/login');
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || '',
+        phone: '', // Will be loaded from API if available
+        bio: '', // Will be loaded from API if available
+        gender: 0, // Will be loaded from API if available
+        birthDate: '' // Will be loaded from API if available
+      });
     }
   }, [user]);
 
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors = { name: '', email: '', phone: '' };
+  const updateField = (field: keyof EditProfileData, value: string | number) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing (only for fields that have errors)
+    if (field in errors && typeof field === 'string' && errors[field as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
 
-    if (!name.trim()) {
-      newErrors.name = 'Họ tên không được để trống';
+  const validateForm = (): boolean => {
+    let isValid = true;
+    const newErrors = {
+      name: '',
+      email: '',
+      phone: '',
+      birthDate: ''
+    };
+
+    // Validate Name
+    if (!formData.name.trim()) {
+      newErrors.name = 'Họ tên là bắt buộc';
       isValid = false;
     }
 
-    if (!email.trim()) {
-      newErrors.email = 'Email không được để trống';
+    // Validate Email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email là bắt buộc';
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
+    } else if (!emailRegex.test(formData.email)) {
       newErrors.email = 'Email không hợp lệ';
       isValid = false;
     }
 
-    if (phone.trim() && !/^\d{10,}$/.test(phone.replace(/[^0-9]/g, ''))) {
+    // Validate Phone (optional but if provided, should be valid)
+    if (formData.phone && !/^[0-9]{10,11}$/.test(formData.phone.replace(/[^0-9]/g, ''))) {
       newErrors.phone = 'Số điện thoại không hợp lệ';
       isValid = false;
     }
@@ -56,114 +104,164 @@ export default function EditProfileScreen() {
     return isValid;
   };
 
-  const handlePickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert('Yêu cầu quyền truy cập', 'Bạn cần cho phép truy cập ảnh để chọn ảnh đại diện.');
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setAvatar(result.assets[0].uri);
-    }
-  };
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validateForm()) return;
 
-    setIsLoading(true);
-    setTimeout(() => {
-      updateProfile({ name, email, phone: phone || undefined, avatar });
-      setIsLoading(false);
-      Alert.alert('Cập nhật thành công', 'Thông tin cá nhân đã được cập nhật.', [
-        { text: 'OK', onPress: () => router.back() }
-      ]);
-    }, 1500);
+    setIsSaving(true);
+    try {
+      const success = await updateUserProfile(formData);
+      
+      if (success) {
+        if (Platform.OS === 'web') {
+          window.alert('Cập nhật thông tin thành công!');
+        } else {
+          Alert.alert(
+            'Thành công',
+            'Thông tin của bạn đã được cập nhật thành công!',
+            [
+              {
+                text: 'OK',
+                onPress: () => router.replace('/(tabs)/profile')
+              }
+            ]
+          );
+        }
+      } else {
+        throw new Error('Cập nhật thất bại');
+      }
+    } catch (error: any) {
+      console.error('Profile update error:', error);
+      
+      let errorMessage = 'Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.';
+      
+      if (error.message) {
+        if (error.message.includes('Email đã tồn tại')) {
+          errorMessage = 'Email đã được sử dụng bởi tài khoản khác.';
+        } else if (error.message.includes('Số điện thoại đã tồn tại')) {
+          errorMessage = 'Số điện thoại đã được sử dụng bởi tài khoản khác.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
+      if (Platform.OS === 'web') {
+        window.alert(errorMessage);
+      } else {
+        Alert.alert('Lỗi', errorMessage);
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Không thể tải thông tin người dùng</Text>
+          <Button
+            title="Quay lại"
+            onPress={() => router.back()}
+            style={styles.backButton}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardAvoidingView}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ChevronLeft size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Chỉnh sửa hồ sơ</Text>
-          <View style={styles.placeholder} />
-        </View>
-
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardAvoidingView}
+      >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.avatarContainer}>
-            {avatar ? (
-              <Image source={{ uri: avatar }} style={styles.avatar} />
-            ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
-              </View>
-            )}
-            <TouchableOpacity style={styles.changePhotoButton} onPress={handlePickImage}>
-              <Camera size={16} color="#fff" />
-              <Text style={styles.changePhotoText}>Đổi ảnh</Text>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>
+            <Text style={styles.headerTitle}>Chỉnh sửa thông tin</Text>
+            <View style={styles.placeholder} />
           </View>
 
           <View style={styles.form}>
             <Input
-              label="Họ tên"
-              placeholder="Nhập họ tên"
-              value={name}
-              onChangeText={setName}
+              label="Họ và tên"
+              placeholder="Nhập họ và tên của bạn"
+              value={formData.name}
+              onChangeText={(value) => updateField('name', value)}
               autoCapitalize="words"
               error={errors.name}
               leftIcon={<User size={20} color={colors.textLight} />}
             />
+
             <Input
               label="Email"
-              placeholder="Nhập email"
-              value={email}
-              onChangeText={setEmail}
+              placeholder="Nhập địa chỉ email"
+              value={formData.email}
+              onChangeText={(value) => updateField('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
               error={errors.email}
               leftIcon={<Mail size={20} color={colors.textLight} />}
             />
+
             <Input
               label="Số điện thoại (tùy chọn)"
               placeholder="Nhập số điện thoại"
-              value={phone}
-              onChangeText={setPhone}
+              value={formData.phone}
+              onChangeText={(value) => updateField('phone', value)}
               keyboardType="phone-pad"
               error={errors.phone}
               leftIcon={<Phone size={20} color={colors.textLight} />}
             />
+
             <Input
               label="Ngày sinh (tùy chọn)"
-              placeholder="MM/DD/YYYY"
-              value={birthday}
-              onChangeText={setBirthday}
+              placeholder="DD/MM/YYYY"
+              value={formData.birthDate}
+              onChangeText={(value) => updateField('birthDate', value)}
+              keyboardType="numeric"
+              error={errors.birthDate}
               leftIcon={<Calendar size={20} color={colors.textLight} />}
             />
+
             <Input
-              label="Địa chỉ (tùy chọn)"
-              placeholder="Nhập địa chỉ"
-              value={address}
-              onChangeText={setAddress}
-              leftIcon={<MapPin size={20} color={colors.textLight} />}
+              label="Tiểu sử (tùy chọn)"
+              placeholder="Mô tả ngắn về bạn"
+              value={formData.bio}
+              onChangeText={(value) => updateField('bio', value)}
+              multiline
+              numberOfLines={3}
+              leftIcon={<FileText size={20} color={colors.textLight} />}
             />
 
-            <View style={styles.buttonContainer}>
-              <Button title="Lưu thay đổi" onPress={handleSave} loading={isLoading} fullWidth style={styles.saveButton} />
-              <Button title="Hủy bỏ" onPress={() => router.back()} variant="outline" fullWidth style={styles.cancelButton} />
+            <View style={styles.infoContainer}>
+              <Text style={styles.infoTitle}>Thông tin tài khoản</Text>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Vai trò:</Text>
+                <Text style={styles.infoValue}>
+                  {user.isAdmin ? 'Quản trị viên' : 'Người dùng'}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>ID:</Text>
+                <Text style={styles.infoValue}>{user.id}</Text>
+              </View>
             </View>
+
+            <Button
+              title="Lưu thay đổi"
+              onPress={handleSave}
+              loading={isSaving || isLoading}
+              fullWidth
+              style={styles.saveButton}
+              leftIcon={<Save size={20} color="#fff" />}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -174,42 +272,67 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   keyboardAvoidingView: { flex: 1 },
+  scrollContent: { flexGrow: 1 },
+  errorContainer: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 24 
+  },
+  errorText: { 
+    fontSize: 16, 
+    color: colors.textLight, 
+    marginBottom: 24, 
+    textAlign: 'center' 
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
-  backButton: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  backButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: colors.card,
+  },
+  headerTitle: { 
+    fontSize: 18, 
+    fontWeight: 'bold', 
+    color: colors.text 
+  },
   placeholder: { width: 40 },
-  scrollContent: { padding: 24 },
-  avatarContainer: { alignItems: 'center', marginBottom: 32 },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 16 },
-  avatarPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
+  form: { paddingHorizontal: 24, paddingBottom: 24 },
+  infoContainer: {
+    marginTop: 24,
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
   },
-  avatarInitial: { fontSize: 40, fontWeight: 'bold', color: '#fff' },
-  changePhotoButton: {
+  infoTitle: { 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+    color: colors.text, 
+    marginBottom: 12 
+  },
+  infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    justifyContent: 'space-between',
+    marginBottom: 8,
   },
-  changePhotoText: { color: '#fff', marginLeft: 8, fontWeight: '500' },
-  form: { marginBottom: 24 },
-  buttonContainer: { marginTop: 16 },
-  saveButton: { marginBottom: 12 },
-  cancelButton: { marginBottom: 24 },
+  infoLabel: { 
+    fontSize: 14, 
+    color: colors.textLight 
+  },
+  infoValue: { 
+    fontSize: 14, 
+    color: colors.text, 
+    fontWeight: '500' 
+  },
+  saveButton: { marginTop: 8 },
 });

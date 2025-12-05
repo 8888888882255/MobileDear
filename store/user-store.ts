@@ -16,6 +16,8 @@ interface UserState {
   removeAddress: (addressId: string) => void;
   setDefaultAddress: (addressId: string) => void;
   checkAuthStatus: () => Promise<void>;
+  refreshUserProfile: () => Promise<boolean>;
+  updateUserProfile: (updates: any) => Promise<boolean>;
 }
 
 export const useUserStore = create<UserState>()(
@@ -161,6 +163,71 @@ export const useUserStore = create<UserState>()(
         }
       } catch (error) {
         console.error('Failed to check auth status:', error);
+      }
+    },
+
+    refreshUserProfile: async () => {
+      const currentUser = get().user;
+      if (!currentUser) return false;
+
+      try {
+        set({ isLoading: true });
+        const userData = await AuthService.getUserProfile(parseInt(currentUser.id));
+        
+        // Map API response to frontend User type
+        const updatedUser: User = {
+          id: userData.maNguoiDung.toString(),
+          name: userData.hoTen,
+          email: userData.email,
+          isAdmin: userData.vaiTro === 1,
+          addresses: currentUser.addresses // Keep existing addresses
+        };
+
+        set({ user: updatedUser, isLoading: false });
+        return true;
+      } catch (error) {
+        console.error('Failed to refresh user profile:', error);
+        set({ isLoading: false });
+        return false;
+      }
+    },
+
+    updateUserProfile: async (updates: any) => {
+      const currentUser = get().user;
+      if (!currentUser) return false;
+
+      try {
+        set({ isLoading: true });
+        
+        // Convert frontend format to backend format
+        const updateData = {
+          maNguoiDung: parseInt(currentUser.id),
+          hoTen: updates.name,
+          email: updates.email,
+          sdt: updates.phone,
+          vaiTro: updates.isAdmin ? 1 : 2,
+          trangThai: 1,
+          tieuSu: updates.bio || '',
+          gioiTinh: updates.gender || 0,
+          ngaySinh: updates.birthDate
+        };
+
+        const result = await AuthService.updateUserProfile(parseInt(currentUser.id), updateData);
+        
+        // Update local user data
+        const updatedUser: User = {
+          ...currentUser,
+          name: result.hoTen,
+          email: result.email,
+          // Note: phone, bio, gender, birthDate would need to be added to User type
+        };
+
+        set({ user: updatedUser, isLoading: false });
+        return true;
+      } catch (error) {
+        console.error('Failed to update user profile:', error);
+        set({ isLoading: false });
+        return false;
       }
     }
   })

@@ -3,6 +3,18 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { LoginRequest, LoginResponse } from '@/types';
 
+interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+interface RequestConfig extends RequestInit {
+  timeout?: number;
+  retries?: number;
+}
+
 export class AuthService {
   private static getApiUrl(): string {
     // Get from app.json config first
@@ -35,31 +47,150 @@ export class AuthService {
     }
   }
 
-  private static async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  private static async request<T>(
+    endpoint: string, 
+    options: RequestConfig = {}
+  ): Promise<T> {
     const url = `${this.getApiUrl()}${endpoint}`;
+    const { timeout = 10000, retries = 1 } = options;
     
     console.log('AuthService - Making request to:', url);
+    console.log('Request options:', { 
+      ...options, 
+      headers: { ...options.headers }
+    });
     
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         ...options.headers,
       },
       ...options,
     };
 
-    try {
-      const response = await fetch(url, config);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Lỗi không xác định' }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
+    return this.executeRequestWithRetry<T>(url, config, retries, timeout);
+  }
 
-      return await response.json();
-    } catch (error) {
-      console.error('API request failed:', error);
+  private static async executeRequestWithRetry<T>(
+    url: string, 
+    config: RequestInit, 
+    retries: number, 
+    timeout: number,
+    attempt: number = 1
+  ): Promise<T> {
+    try {
+      // Tạo AbortController cho timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      
+      console.log(`AuthService - Attempt ${attempt}/${retries + 1} to:`, url);
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
+      // Xử lý response theo status code
+      if (response.status === 200 || response.status === 201) {
+        // Success - parse JSON response
+        const data = await response.json();
+        console.log('Success response data:', data);
+        return data;
+      }
+      
+      // Error responses - parse error details
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { message: 'Lỗi không xác định từ server' };
+      }
+      
+      // Xử lý các status code cụ thể
+      const errorMessage = this.handleHttpError(response.status, errorData);
+      throw new Error(errorMessage);
+      
+    } catch (error: any) {
+      console.error(`AuthService - Request failed (attempt ${attempt}):`, error);
+      
+      // Retry logic cho network errors và server errors
+      const shouldRetry = attempt <= retries && (
+        error.name === 'AbortError' || // Timeout
+        error.message.includes('Không thể kết nối') || // Network error
+        error.message.includes('tạm thời không khả dụng') // Server error
+      );
+      
+      if (shouldRetry) {
+        console.log(`AuthService - Retrying in 1 second...`);
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+        return this.executeRequestWithRetry(url, config, retries, timeout, attempt + 1);
+      }
+      
+      // Network errors hoặc các lỗi khác
+      if (error.name === 'AbortError') {
+        console.error('Timeout Error:', error);
+        throw new Error('Yêu cầu hết thời gian chờ. Vui lòng thử lại.');
+      }
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        console.error('Network Error:', error);
+        throw new Error('Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.');
+      }
+      
+      // Nếu không retry được, throw error gốc
       throw error;
+    }
+  }
+
+  private static handleHttpError(status: number, errorData: any): string {
+    switch (status) {
+      case 400:
+        console.error('Bad Request - Validation Error:', errorData);
+        return errorData.message || 'Dữ liệu không hợp lệ';
+        
+      case 401:
+        console.error('Unauthorized - Authentication Error:', errorData);
+        return errorData.message || 'Không có quyền truy cập. Vui lòng đăng nhập lại.';
+        
+      case 403:
+        console.error('Forbidden - Authorization Error:', errorData);
+        return errorData.message || 'Bạn không có quyền thực hiện hành động này.';
+        
+      case 404:
+        console.error('Not Found - Resource Error:', errorData);
+        return errorData.message || 'Không tìm thấy tài nguyên yêu cầu.';
+        
+      case 409:
+        console.error('Conflict - Duplicate Error:', errorData);
+        return errorData.message || 'Dữ liệu đã tồn tại.';
+        
+      case 422:
+        console.error('Unprocessable Entity - Validation Error:', errorData);
+        return errorData.message || 'Dữ liệu không thể xử lý.';
+        
+      case 429:
+        console.error('Too Many Requests - Rate Limit Error:', errorData);
+        return 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
+        
+      case 500:
+        console.error('Internal Server Error:', errorData);
+        return 'Lỗi máy chủ nội bộ. Vui lòng thử lại sau.';
+        
+      case 502:
+      case 503:
+      case 504:
+        console.error('Server Error:', status, errorData);
+        return 'Dịch vụ tạm thời không khả dụng. Vui lòng thử lại sau.';
+        
+      default:
+        console.error(`HTTP Error ${status}:`, errorData);
+        return errorData.message || `Lỗi HTTP ${status}: Không thể xử lý yêu cầu.`;
     }
   }
 
@@ -118,5 +249,51 @@ export class AuthService {
   static async getAuthHeaders(): Promise<Record<string, string>> {
     const token = await this.getStoredToken();
     return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  // Get user profile information
+  static async getUserProfile(userId: number): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    return this.request<any>(`/NguoiDung/${userId}`, {
+      method: 'GET',
+      headers
+    });
+  }
+
+  // Update user profile information
+  static async updateUserProfile(userId: number, updateData: any): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    return this.request<any>(`/NguoiDung/${userId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(updateData)
+    });
+  }
+
+  // Delete user account (Admin only)
+  static async deleteUser(userId: number): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    return this.request<any>(`/NguoiDung/${userId}`, {
+      method: 'DELETE',
+      headers
+    });
+  }
+
+  // Search users (Admin only)
+  static async searchUsers(keyword: string): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    return this.request<any>(`/NguoiDung/search?keyword=${encodeURIComponent(keyword)}`, {
+      method: 'GET',
+      headers
+    });
+  }
+
+  // Filter users by role (Admin only)
+  static async getUsersByRole(role: number): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    return this.request<any>(`/NguoiDung/filter/role/${role}`, {
+      method: 'GET',
+      headers
+    });
   }
 }
