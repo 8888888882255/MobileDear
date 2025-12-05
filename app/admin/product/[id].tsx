@@ -1,3 +1,4 @@
+// app/(admin)/products/[id].tsx  hoặc  edit.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -7,7 +8,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
-  ActivityIndicator
+  Image,
+  FlatList,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
@@ -16,8 +20,19 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
-import { categories } from '@/mocks/categories';
-import { products } from '@/mocks/products';
+import Constants from 'expo-constants';
+import * as ImagePicker from 'expo-image-picker';
+
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+
+type MediaItem = { maMedia: number; duongDan: string };
+type SelectedImage = {
+  uri: string;
+  name: string;
+  type: string;
+  file?: File;
+  maMedia?: number;
+};
 
 export default function EditProductScreen() {
   const router = useRouter();
@@ -25,453 +40,361 @@ export default function EditProductScreen() {
   const { user } = useUserStore();
 
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Form
+  const [maSanPham, setMaSanPham] = useState(0);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [maVach, setMaVach] = useState('');
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
-  const [category, setCategory] = useState('Women');
-  const [subcategory, setSubcategory] = useState('');
   const [stock, setStock] = useState('');
-  const [images, setImages] = useState<string[]>(['']);
-  const [sizes, setSizes] = useState<string[]>(['']);
-  const [productColors, setProductColors] = useState<string[]>(['']);
-  const [tags, setTags] = useState<string[]>(['']);
-  const [featured, setFeatured] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [gioiTinh, setGioiTinh] = useState('Phụ Nữ');
 
-  useEffect(() => {
-    const product = products.find(p => p.id === id);
-    if (product) {
-      setName(product.name);
-      setDescription(product.description);
-      setPrice(product.price.toString());
-      setDiscountPrice(product.discountPrice?.toString() || '');
-      setCategory(product.category);
-      setSubcategory(product.subcategory || '');
-      setStock(product.stock.toString());
-      setImages(product.images.length > 0 ? product.images : ['']);
-      setSizes(product.sizes.length > 0 ? product.sizes : ['']);
-      setProductColors(product.colors.length > 0 ? product.colors : ['']);
-      setTags(product.tags.length > 0 ? product.tags : ['']);
-      setFeatured(product.featured);
-    }
-    setLoading(false);
-  }, [id]);
+  // Danh mục
+  const [loaiList, setLoaiList] = useState<any[]>([]);
+  const [thuongHieuList, setThuongHieuList] = useState<any[]>([]);
+  const [hashtagList, setHashtagList] = useState<any[]>([]);
+  const [selectedMaLoai, setSelectedMaLoai] = useState<number | null>(null);
+  const [selectedMaThuongHieu, setSelectedMaThuongHieu] = useState<number | null>(null);
+  const [selectedMaHashtag, setSelectedMaHashtag] = useState<number | null>(null);
+
+  // Ảnh
+  const [images, setImages] = useState<SelectedImage[]>([]);
+  const [deletedMediaIds, setDeletedMediaIds] = useState<number[]>([]);
+
+  const gioiTinhMap: Record<string, number> = {
+    'Phụ Nữ': 2,
+    'Nam': 1,
+    'Trẻ Em': 3,
+    'Phụ Kiện': 0,
+  };
 
   if (!user?.isAdmin) {
     router.replace('/');
     return null;
   }
 
+  useEffect(() => {
+    if (id) {
+      loadData();
+    }
+  }, [id]);
+
+  const loadData = async () => {
+    try {
+      await Promise.all([loadProduct(), loadDanhMuc()]);
+    } catch {
+      Alert.alert('Lỗi', 'Không tải được dữ liệu');
+      router.back();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadDanhMuc = async () => {
+    const [res1, res2, res3] = await Promise.all([
+      fetch(`${API_URL}/api/DanhMuc/filter/type/1`),
+      fetch(`${API_URL}/api/DanhMuc/filter/type/2`),
+      fetch(`${API_URL}/api/DanhMuc/filter/type/3`),
+    ]);
+    const [loai, thuonghieu, hashtag] = await Promise.all([res1.json(), res2.json(), res3.json()]);
+    setLoaiList(Array.isArray(loai) ? loai : []);
+    setThuongHieuList(Array.isArray(thuonghieu) ? thuonghieu : []);
+    setHashtagList(Array.isArray(hashtag) ? hashtag : []);
+  };
+
+  const loadProduct = async () => {
+    const res = await fetch(`${API_URL}/api/SanPham/${id}`);
+    if (!res.ok) throw new Error('Không tìm thấy sản phẩm');
+    const p = await res.json();
+
+    setMaSanPham(p.maSanPham);
+    setName(p.tenSanPham || '');
+    setDescription(p.moTa || '');
+    setMaVach(p.maVach || '');
+    setPrice(p.giaBan?.toString() || '');
+    setDiscountPrice(p.giaSale?.toString() || '');
+    setStock(p.soLuong?.toString() || '');
+    setSelectedMaLoai(p.maLoai);
+    setSelectedMaThuongHieu(p.maThuongHieu);
+    setSelectedMaHashtag(p.maHashtag);
+
+    const gt = Object.keys(gioiTinhMap).find(k => gioiTinhMap[k] === p.gioiTinh) || 'Phụ Nữ';
+    setGioiTinh(gt);
+
+    if (p.medias?.length > 0) {
+      const oldImgs: SelectedImage[] = p.medias.map((m: MediaItem) => ({
+        uri: `${API_URL}${m.duongDan.startsWith('/') ? '' : '/'}${m.duongDan}`,
+        name: m.duongDan.split('/').pop() || 'image.jpg',
+        type: 'image/jpeg',
+        maMedia: m.maMedia,
+      }));
+      setImages(oldImgs);
+    }
+  };
+
+  // Chọn ảnh mới – hỗ trợ tất cả nền tảng
+  const pickImages = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.accept = 'image/*';
+      input.onchange = (e: any) => {
+        const files: File[] = Array.from(e.target.files || []);
+        const newImgs = files.map(f => ({
+          uri: URL.createObjectURL(f),
+          name: f.name,
+          type: f.type || 'image/jpeg',
+          file: f,
+        }));
+        setImages(prev => [...prev, ...newImgs]);
+      };
+      input.click();
+      return;
+    }
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') return Alert.alert('Cần quyền truy cập thư viện ảnh');
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets) {
+      const newImgs = result.assets.map(a => ({
+        uri: a.uri,
+        name: a.uri.split('/').pop() || `img_${Date.now()}.jpg`,
+        type: 'image/jpeg',
+      }));
+      setImages(prev => [...prev, ...newImgs]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const img = images[index];
+    if (img.maMedia) setDeletedMediaIds(prev => [...prev, img.maMedia!]);
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const validate = () => {
+    if (!name.trim()) return Alert.alert('Lỗi', 'Tên sản phẩm bắt buộc');
+    if (!price || Number(price) <= 0) return Alert.alert('Lỗi', 'Giá bán phải > 0');
+    if (images.length === 0) return Alert.alert('Lỗi', 'Cần ít nhất 1 hình ảnh');
+    if (!selectedMaLoai || !selectedMaThuongHieu) return Alert.alert('Lỗi', 'Chọn loại và thương hiệu');
+    return true;
+  };
+
+  const handleSave = async () => {
+    if (!validate()) return;
+    setSaving(true);
+
+    const formData = new FormData();
+
+    formData.append('MaSanPham', maSanPham.toString());
+    formData.append('TenSanPham', name.trim());
+    formData.append('MoTa', description.trim());
+    formData.append('MaVach', maVach.trim());
+    formData.append('GioiTinh', gioiTinhMap[gioiTinh].toString());
+    formData.append('MaLoai', selectedMaLoai!.toString());
+    formData.append('MaThuongHieu', selectedMaThuongHieu!.toString());
+    formData.append('GiaBan', price);
+    if (discountPrice.trim()) formData.append('GiaSale', discountPrice.trim());
+    formData.append('SoLuong', stock);
+    if (selectedMaHashtag) formData.append('MaHashtag', selectedMaHashtag.toString());
+
+    // Ảnh mới
+    images.forEach(img => {
+      if (!img.maMedia) {
+        if (Platform.OS === 'web' && img.file) {
+          formData.append('newImageFiles', img.file, img.name);
+        } else {
+          formData.append('newImageFiles', {
+            uri: img.uri,
+            name: img.name,
+            type: img.type,
+          } as any);
+        }
+      }
+    });
+
+    // Gửi danh sách ảnh cần xóa (nếu backend hỗ trợ)
+    if (deletedMediaIds.length > 0) {
+      formData.append('DeletedMediaIds', JSON.stringify(deletedMediaIds));
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(err || 'Cập nhật thất bại');
+      }
+
+      Alert.alert('Thành công!', 'Sản phẩm đã được cập nhật!', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Không thể cập nhật');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Loading product...</Text>
+          <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const selectedCategory = categories.find(c => c.name === category);
-
-  const handleAddImage = () => {
-    setImages([...images, '']);
-  };
-
-  const handleRemoveImage = (index: number) => {
-    if (images.length > 1) {
-      const updated = images.filter((_, i) => i !== index);
-      setImages(updated);
-    }
-  };
-
-  const handleUpdateImage = (index: number, value: string) => {
-    const updated = [...images];
-    updated[index] = value;
-    setImages(updated);
-  };
-
-  const handleAddSize = () => {
-    setSizes([...sizes, '']);
-  };
-
-  const handleRemoveSize = (index: number) => {
-    if (sizes.length > 1) {
-      const updated = sizes.filter((_, i) => i !== index);
-      setSizes(updated);
-    }
-  };
-
-  const handleUpdateSize = (index: number, value: string) => {
-    const updated = [...sizes];
-    updated[index] = value;
-    setSizes(updated);
-  };
-
-  const handleAddColor = () => {
-    setProductColors([...productColors, '']);
-  };
-
-  const handleRemoveColor = (index: number) => {
-    if (productColors.length > 1) {
-      const updated = productColors.filter((_, i) => i !== index);
-      setProductColors(updated);
-    }
-  };
-
-  const handleUpdateColor = (index: number, value: string) => {
-    const updated = [...productColors];
-    updated[index] = value;
-    setProductColors(updated);
-  };
-
-  const handleAddTag = () => {
-    setTags([...tags, '']);
-  };
-
-  const handleRemoveTag = (index: number) => {
-    if (tags.length > 1) {
-      const updated = tags.filter((_, i) => i !== index);
-      setTags(updated);
-    }
-  };
-
-  const handleUpdateTag = (index: number, value: string) => {
-    const updated = [...tags];
-    updated[index] = value;
-    setTags(updated);
-  };
-
-  const validateForm = () => {
-    if (!name.trim()) {
-      Alert.alert('Error', 'Product name is required');
-      return false;
-    }
-    if (!description.trim()) {
-      Alert.alert('Error', 'Description is required');
-      return false;
-    }
-    if (!price || parseFloat(price) <= 0) {
-      Alert.alert('Error', 'Valid price is required');
-      return false;
-    }
-    if (!stock || parseInt(stock, 10) < 0) {
-      Alert.alert('Error', 'Valid stock quantity is required');
-      return false;
-    }
-    if (images.filter(img => img.trim()).length === 0) {
-      Alert.alert('Error', 'At least one image URL is required');
-      return false;
-    }
-    if (sizes.filter(s => s.trim()).length === 0) {
-      Alert.alert('Error', 'At least one size is required');
-      return false;
-    }
-    if (productColors.filter(c => c.trim()).length === 0) {
-      Alert.alert('Error', 'At least one color is required');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSave = async () => {
-    if (!validateForm()) return;
-
-    setIsSaving(true);
-
-    const updatedProduct = {
-      id,
-      name: name.trim(),
-      description: description.trim(),
-      price: parseFloat(price),
-      discountPrice: discountPrice ? parseFloat(discountPrice) : undefined,
-      category,
-      subcategory: subcategory || undefined,
-      stock: parseInt(stock, 10),
-      images: images.filter(img => img.trim()),
-      sizes: sizes.filter(s => s.trim()),
-      colors: productColors.filter(c => c.trim()),
-      tags: tags.filter(t => t.trim()),
-      featured,
-      updatedAt: new Date().toISOString()
-    };
-
-    setTimeout(() => {
-      setIsSaving(false);
-      Alert.alert(
-        'Success',
-        'Product updated successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back()
-          }
-        ]
-      );
-    }, 500);
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Basic Information</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+
+        {/* Thông tin cơ bản */}
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Thông Tin Cơ Bản</Text>
+          <Input label="Tên Sản Phẩm" value={name} onChangeText={setName} />
+          <Input label="Mô Tả" value={description} onChangeText={setDescription} multiline style={styles.textArea} />
+          <Input label="Mã Vạch" value={maVach} onChangeText={setMaVach} />
 
             <Input
-              label="Product Name"
-              placeholder="Enter product name"
-              value={name}
-              onChangeText={setName}
+              label="Giá Bán"
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="decimal-pad"
+              containerStyle={styles.priceInput}
             />
-
             <Input
-              label="Description"
-              placeholder="Enter product description"
-              value={description}
-              onChangeText={setDescription}
-              multiline
-              numberOfLines={4}
-              style={styles.textArea}
+              label="Giá Sale (Tùy chọn)"
+              value={discountPrice}
+              onChangeText={setDiscountPrice}
+              keyboardType="decimal-pad"
+              containerStyle={styles.priceInput}
             />
 
-            <View style={styles.row}>
-              <Input
-                label="Price"
-                placeholder="0.00"
-                value={price}
-                onChangeText={setPrice}
-                keyboardType="decimal-pad"
-                containerStyle={styles.halfInput}
-              />
 
-              <Input
-                label="Discount Price (Optional)"
-                placeholder="0.00"
-                value={discountPrice}
-                onChangeText={setDiscountPrice}
-                keyboardType="decimal-pad"
-                containerStyle={styles.halfInput}
-              />
-            </View>
+          <Input label="Số Lượng Tồn Kho" value={stock} onChangeText={setStock} keyboardType="number-pad" />
+        </Card>
 
-            <Input
-              label="Stock Quantity"
-              placeholder="0"
-              value={stock}
-              onChangeText={setStock}
-              keyboardType="number-pad"
-            />
-          </Card>
-
-          <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Category</Text>
-
-            <Text style={styles.label}>Category</Text>
-            <View style={styles.categoryButtons}>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryButton,
-                    category === cat.name && styles.activeCategoryButton
-                  ]}
-                  onPress={() => {
-                    setCategory(cat.name);
-                    setSubcategory('');
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.categoryButtonText,
-                      category === cat.name && styles.activeCategoryButtonText
-                    ]}
-                  >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {selectedCategory && selectedCategory.subcategories.length > 0 && (
-              <>
-                <Text style={styles.label}>Subcategory (Optional)</Text>
-                <View style={styles.subcategoryButtons}>
-                  {selectedCategory.subcategories.map((sub) => (
-                    <TouchableOpacity
-                      key={sub}
-                      style={[
-                        styles.subcategoryChip,
-                        subcategory === sub && styles.activeSubcategoryChip
-                      ]}
-                      onPress={() => setSubcategory(sub)}
-                    >
-                      <Text
-                        style={[
-                          styles.subcategoryChipText,
-                          subcategory === sub && styles.activeSubcategoryChipText
-                        ]}
-                      >
-                        {sub}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-          </Card>
-
-          <Card style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Images</Text>
-              <TouchableOpacity onPress={handleAddImage} style={styles.addButton}>
-                <Plus size={20} color={colors.primary} />
-                <Text style={styles.addButtonText}>Add Image</Text>
+        {/* Giới tính */}
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Giới Tính</Text>
+          <View style={styles.chipRow}>
+            {['Phụ Nữ', 'Nam', 'Trẻ Em', 'Phụ Kiện'].map(item => (
+              <TouchableOpacity
+                key={item}
+                style={[styles.chip, gioiTinh === item && styles.activeChip]}
+                onPress={() => setGioiTinh(item)}
+              >
+                <Text style={[styles.chipText, gioiTinh === item && styles.activeChipText]}>{item}</Text>
               </TouchableOpacity>
-            </View>
-
-            {images.map((image, index) => (
-              <View key={index} style={styles.listItem}>
-                <Input
-                  placeholder="Image URL"
-                  value={image}
-                  onChangeText={(value) => handleUpdateImage(index, value)}
-                  containerStyle={styles.listInput}
-                />
-                {images.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => handleRemoveImage(index)}
-                    style={styles.removeButton}
-                  >
-                    <Trash2 size={20} color={colors.error} />
-                  </TouchableOpacity>
-                )}
-              </View>
             ))}
-          </Card>
-
-          <Card style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Sizes</Text>
-              <TouchableOpacity onPress={handleAddSize} style={styles.addButton}>
-                <Plus size={20} color={colors.primary} />
-                <Text style={styles.addButtonText}>Add Size</Text>
-              </TouchableOpacity>
-            </View>
-
-            {sizes.map((size, index) => (
-              <View key={index} style={styles.listItem}>
-                <Input
-                  placeholder="Size (e.g., S, M, L, XL)"
-                  value={size}
-                  onChangeText={(value) => handleUpdateSize(index, value)}
-                  containerStyle={styles.listInput}
-                />
-                {sizes.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => handleRemoveSize(index)}
-                    style={styles.removeButton}
-                  >
-                    <Trash2 size={20} color={colors.error} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </Card>
-
-          <Card style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Colors</Text>
-              <TouchableOpacity onPress={handleAddColor} style={styles.addButton}>
-                <Plus size={20} color={colors.primary} />
-                <Text style={styles.addButtonText}>Add Color</Text>
-              </TouchableOpacity>
-            </View>
-
-            {productColors.map((color, index) => (
-              <View key={index} style={styles.listItem}>
-                <Input
-                  placeholder="Color name"
-                  value={color}
-                  onChangeText={(value) => handleUpdateColor(index, value)}
-                  containerStyle={styles.listInput}
-                />
-                {productColors.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => handleRemoveColor(index)}
-                    style={styles.removeButton}
-                  >
-                    <Trash2 size={20} color={colors.error} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </Card>
-
-          <Card style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Tags</Text>
-              <TouchableOpacity onPress={handleAddTag} style={styles.addButton}>
-                <Plus size={20} color={colors.primary} />
-                <Text style={styles.addButtonText}>Add Tag</Text>
-              </TouchableOpacity>
-            </View>
-
-            {tags.map((tag, index) => (
-              <View key={index} style={styles.listItem}>
-                <Input
-                  placeholder="Tag"
-                  value={tag}
-                  onChangeText={(value) => handleUpdateTag(index, value)}
-                  containerStyle={styles.listInput}
-                />
-                {tags.length > 1 && (
-                  <TouchableOpacity
-                    onPress={() => handleRemoveTag(index)}
-                    style={styles.removeButton}
-                  >
-                    <Trash2 size={20} color={colors.error} />
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </Card>
-
-          <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Options</Text>
-
-            <TouchableOpacity
-              style={styles.checkboxRow}
-              onPress={() => setFeatured(!featured)}
-            >
-              <View style={styles.checkbox}>
-                {featured && <View style={styles.checkboxFill} />}
-              </View>
-              <View style={styles.checkboxContent}>
-                <Text style={styles.checkboxLabel}>Featured Product</Text>
-                <Text style={styles.checkboxDescription}>
-                  Display this product in featured sections
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </Card>
-
-          <View style={styles.actions}>
-            <Button
-              title="Cancel"
-              onPress={() => router.back()}
-              variant="outline"
-              style={styles.actionButton}
-            />
-            <Button
-              title={isSaving ? 'Saving...' : 'Update Product'}
-              onPress={handleSave}
-              disabled={isSaving}
-              style={styles.actionButton}
-            />
           </View>
+        </Card>
+
+        {/* Loại sản phẩm */}
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Loại Sản Phẩm</Text>
+          <View style={styles.chipRow}>
+            {loaiList.map(item => (
+              <TouchableOpacity
+                key={item.maDanhMuc}
+                style={[styles.chip, selectedMaLoai === item.maDanhMuc && styles.activeChip]}
+                onPress={() => setSelectedMaLoai(item.maDanhMuc)}
+              >
+                <Text style={[styles.chipText, selectedMaLoai === item.maDanhMuc && styles.activeChipText]}>
+                  {item.tenDanhMuc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+
+        {/* Thương hiệu */}
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Thương Hiệu</Text>
+          <View style={styles.chipRow}>
+            {thuongHieuList.map(item => (
+              <TouchableOpacity
+                key={item.maDanhMuc}
+                style={[styles.chip, selectedMaThuongHieu === item.maDanhMuc && styles.activeChip]}
+                onPress={() => setSelectedMaThuongHieu(item.maDanhMuc)}
+              >
+                <Text style={[styles.chipText, selectedMaThuongHieu === item.maDanhMuc && styles.activeChipText]}>
+                  {item.tenDanhMuc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+
+        {/* Hashtag (tùy chọn) */}
+        <Card style={styles.section}>
+          <Text style={styles.sectionTitle}>Hashtag (Tùy chọn)</Text>
+          <View style={styles.chipRow}>
+            {hashtagList.map(item => (
+              <TouchableOpacity
+                key={item.maDanhMuc}
+                style={[styles.chip, selectedMaHashtag === item.maDanhMuc && styles.activeChip]}
+                onPress={() => setSelectedMaHashtag(item.maDanhMuc)}
+              >
+                <Text style={[styles.chipText, selectedMaHashtag === item.maDanhMuc && styles.activeChipText]}>
+                  {item.tenDanhMuc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Card>
+
+        {/* Hình ảnh */}
+        <Card style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hình Ảnh ({images.length})</Text>
+            <TouchableOpacity onPress={pickImages} style={styles.addButton}>
+              <Plus size={22} color={colors.primary} />
+              <Text style={styles.addButtonText}>Thêm ảnh</Text>
+            </TouchableOpacity>
+          </View>
+
+          <FlatList
+            data={images}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(_, i) => i.toString()}
+            renderItem={({ item, index }) => (
+              <View style={styles.imageWrapper}>
+                <Image source={{ uri: item.uri }} style={styles.previewImage} resizeMode="cover" />
+                <TouchableOpacity style={styles.removeBtn} onPress={() => removeImage(index)}>
+                  <Trash2 size={18} color="#fff" />
+                </TouchableOpacity>
+              </View>
+            )}
+            ListEmptyComponent={<Text style={styles.emptyText}>Chưa có hình ảnh</Text>}
+          />
+        </Card>
+
+        {/* Nút hành động */}
+        <View style={styles.actions}>
+          <Button title="Hủy" variant="outline" onPress={() => router.back()} style={styles.actionBtn} />
+          <Button
+            title={saving ? 'Đang lưu...' : 'Cập Nhật'}
+            onPress={handleSave}
+            disabled={saving}
+            style={styles.actionBtn}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -479,176 +402,41 @@ export default function EditProductScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: colors.textLight,
-  },
-  section: {
-    padding: 16,
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  halfInput: {
-    flex: 1,
-    marginRight: 8,
-  },
-  textArea: {
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  categoryButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
-  },
-  categoryButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  activeCategoryButton: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  categoryButtonText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  activeCategoryButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  subcategoryButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  subcategoryChip: {
-    paddingVertical: 8,
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { padding: 16, paddingBottom: 50 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, color: colors.textLight, fontSize: 16 },
+  section: { padding: 16, marginBottom: 16, borderRadius: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  textArea: { minHeight: 100, textAlignVertical: 'top' },
+  priceRow: { flexDirection: 'row', gap: 12 },
+  priceInput: { flex: 1 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  chip: {
     paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.border,
-    marginRight: 8,
-    marginBottom: 8,
   },
-  activeSubcategoryChip: {
-    backgroundColor: colors.primary + '20',
-    borderColor: colors.primary,
+  activeChip: { backgroundColor: colors.primary + '20', borderColor: colors.primary },
+  chipText: { fontSize: 14, color: colors.text },
+  activeChipText: { color: colors.primary, fontWeight: '600' },
+  addButton: { flexDirection: 'row', alignItems: 'center' },
+  addButtonText: { marginLeft: 6, color: colors.primary, fontWeight: '500' },
+  imageWrapper: { position: 'relative', marginRight: 12 },
+  previewImage: { width: 120, height: 120, borderRadius: 12 },
+  removeBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 16,
+    padding: 6,
   },
-  subcategoryChipText: {
-    fontSize: 14,
-    color: colors.text,
-  },
-  activeSubcategoryChipText: {
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 14,
-    color: colors.primary,
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  listInput: {
-    flex: 1,
-    marginBottom: 0,
-    marginRight: 8,
-  },
-  removeButton: {
-    padding: 8,
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  checkboxFill: {
-    width: 14,
-    height: 14,
-    borderRadius: 3,
-    backgroundColor: colors.primary,
-  },
-  checkboxContent: {
-    flex: 1,
-  },
-  checkboxLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  checkboxDescription: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  actions: {
-    flexDirection: 'row',
-    marginTop: 8,
-    marginBottom: 32,
-  },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
+  emptyText: { color: colors.textLight, textAlign: 'center', padding: 20 },
+  actions: { flexDirection: 'row', marginTop: 20, gap: 12 },
+  actionBtn: { flex: 1 },
 });

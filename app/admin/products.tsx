@@ -1,162 +1,221 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
+// app/(admin)/products/index.tsx
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
   SafeAreaView,
   Image,
-  Alert
+  Alert,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Edit, 
-  Trash2,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react-native';
+import { Plus, Search, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { products } from '@/mocks/products';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
+import Constants from 'expo-constants';
+
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+
+type SanPham = {
+  maSanPham: number;
+  tenSanPham: string;
+  slug: string;
+  giaBan: number;
+  giaSale?: number;
+  giaSauSale: number;
+  phanTramSale?: number;
+  soLuong: number;
+  medias: { duongDan: string }[];
+  tenLoai?: string;
+  tenThuongHieu?: string;
+  trangThai: number;
+  ngayTao: string;
+};
 
 export default function AdminProductsScreen() {
   const router = useRouter();
   const { user } = useUserStore();
-  
-  // Redirect if not admin
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [products, setProducts] = useState<SanPham[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<SanPham[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'tenSanPham' | 'giaBan' | 'soLuong' | 'ngayTao'>('ngayTao');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Bảo vệ admin
   if (!user?.isAdmin) {
     router.replace('/');
     return null;
   }
-  
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
-  const [showFilters, setShowFilters] = useState(false);
-  const [filteredProducts, setFilteredProducts] = useState([...products]);
-  
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-    
-    if (text.trim() === '') {
-      setFilteredProducts([...products]);
+
+  // Load sản phẩm từ API
+  const loadProducts = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/SanPham`);
+      if (!res.ok) throw new Error('Không tải được sản phẩm');
+      const data: SanPham[] = await res.json();
+
+      // Chỉ hiển thị sản phẩm đang hoạt động (nếu cần)
+      const activeProducts = data.filter(p => p.trangThai === 1);
+      setProducts(activeProducts);
+      setFilteredProducts(activeProducts);
+    } catch (err: any) {
+      Alert.alert('Lỗi', err.message || 'Không thể tải danh sách sản phẩm');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  // Pull to refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadProducts();
+  }, []);
+
+  // Tìm kiếm
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredProducts(products);
       return;
     }
-    
-    const filtered = products.filter(
-      product => 
-        product.name.toLowerCase().includes(text.toLowerCase()) ||
-        product.description.toLowerCase().includes(text.toLowerCase()) ||
-        product.category.toLowerCase().includes(text.toLowerCase())
+
+    const filtered = products.filter(p =>
+      p.tenSanPham.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.tenLoai?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.tenThuongHieu?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.slug.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
     setFilteredProducts(filtered);
-  };
-  
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      // Toggle sort order if same field
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      // New field, default to ascending
-      setSortBy(field);
-      setSortOrder('asc');
-    }
-    
-    // Apply sorting
+  }, [searchQuery, products]);
+
+  // Sắp xếp
+  useEffect(() => {
     const sorted = [...filteredProducts].sort((a, b) => {
-      let comparison = 0;
-      
-      switch (field) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
+      let valA: any, valB: any;
+
+      switch (sortBy) {
+        case 'tenSanPham':
+          valA = a.tenSanPham; valB = b.tenSanPham;
           break;
-        case 'price':
-          comparison = a.price - b.price;
+        case 'giaBan':
+          valA = a.giaBan; valB = b.giaBan;
           break;
-        case 'stock':
-          comparison = a.stock - b.stock;
+        case 'soLuong':
+          valA = a.soLuong; valB = b.soLuong;
+          break;
+        case 'ngayTao':
+          valA = new Date(a.ngayTao).getTime();
+          valB = new Date(b.ngayTao).getTime();
           break;
         default:
-          comparison = 0;
+          valA = valB = 0;
       }
-      
-      return sortOrder === 'asc' ? comparison : -comparison;
+
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
     });
-    
+
     setFilteredProducts(sorted);
+  }, [sortBy, sortOrder]);
+
+  const handleSort = (field: typeof sortBy) => {
+    if (sortBy === field) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
   };
-  
-  const handleAddProduct = () => {
-    router.push('/admin/product/new');
-  };
-  
-  const handleEditProduct = (productId: string) => {
-    router.push(`/admin/product/${productId}`);
-  };
-  
-  const handleDeleteProduct = (productId: string) => {
+
+  const handleDelete = (id: number) => {
     Alert.alert(
-      "Delete Product",
-      "Are you sure you want to delete this product?",
+      'Xóa sản phẩm',
+      'Bạn có chắc chắn muốn xóa sản phẩm này?',
       [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive", 
-          onPress: () => {
-            // In a real app, you would call an API to delete the product
-            // For this demo, we'll just filter it out of the local state
-            const updatedProducts = filteredProducts.filter(
-              product => product.id !== productId
-            );
-            setFilteredProducts(updatedProducts);
-          } 
-        }
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Xóa',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
+                method: 'DELETE',
+              });
+              if (!res.ok) throw new Error('Xóa thất bại');
+              Alert.alert('Thành công', 'Đã xóa sản phẩm');
+              loadProducts(); // Refresh danh sách
+            } catch (err: any) {
+              Alert.alert('Lỗi', err.message || 'Không thể xóa');
+            }
+          },
+        },
       ]
     );
   };
-  
-  const renderProductItem = ({ item }: { item: typeof products[0] }) => (
+
+  const getFirstImage = (medias: any[]) => {
+    if (!medias || medias.length === 0) return 'https://via.placeholder.com/60';
+    return `${API_URL}${medias[0].duongDan.startsWith('/') ? '' : '/'}${medias[0].duongDan}`;
+  };
+
+  const renderProduct = ({ item }: { item: SanPham }) => (
     <Card style={styles.productCard}>
-      <View style={styles.productContainer}>
-        <Image 
-          source={{ uri: item.images[0] }} 
-          style={styles.productImage} 
+      <View style={styles.productRow}>
+        <Image
+          source={{ uri: getFirstImage(item.medias) }}
+          style={styles.productImage}
           resizeMode="cover"
         />
-        
+
         <View style={styles.productInfo}>
-          <Text style={styles.productName} numberOfLines={1}>{item.name}</Text>
-          <Text style={styles.productCategory}>{item.category}</Text>
-          <View style={styles.productDetails}>
-            <Text style={styles.productPrice}>
-              ${(item.discountPrice || item.price).toFixed(2)}
-            </Text>
-            <Text style={styles.productStock}>
-              Stock: {item.stock}
-            </Text>
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.tenSanPham}
+          </Text>
+
+          <View style={styles.priceRow}>
+            {item.giaSale ? (
+              <>
+                <Text style={styles.salePrice}>₫{item.giaSauSale.toLocaleString()}</Text>
+                <Text style={styles.originalPrice}>₫{item.giaBan.toLocaleString()}</Text>
+                {item.phanTramSale && (
+                  <View style={styles.saleBadge}>
+                    <Text style={styles.saleBadgeText}>-{Math.round(item.phanTramSale)}%</Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <Text style={styles.normalPrice}>₫{item.giaBan.toLocaleString()}</Text>
+            )}
           </View>
+
+          <Text style={styles.stockText}>Tồn kho: {item.soLuong.toLocaleString()}</Text>
         </View>
-        
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => handleEditProduct(item.id)}
+
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.editBtn}
+            onPress={() => router.push(`/admin/product/${item.maSanPham}`)}
           >
             <Edit size={18} color={colors.primary} />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDeleteProduct(item.id)}
+          <TouchableOpacity
+            style={styles.deleteBtn}
+            onPress={() => handleDelete(item.maSanPham)}
           >
             <Trash2 size={18} color={colors.error} />
           </TouchableOpacity>
@@ -164,117 +223,93 @@ export default function AdminProductsScreen() {
       </View>
     </Card>
   );
-  
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Input
-          placeholder="Search products..."
+          placeholder="Tìm kiếm sản phẩm..."
           value={searchQuery}
-          onChangeText={handleSearch}
+          onChangeText={setSearchQuery}
           leftIcon={<Search size={20} color={colors.textLight} />}
-          containerStyle={styles.searchContainer}
+          containerStyle={{
+            flex: 1,
+            height: 50
+          }}
+
         />
-        
-        <TouchableOpacity 
-          style={styles.filterButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Filter size={20} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
-      
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          <Text style={styles.filtersTitle}>Sort By:</Text>
-          
-          <View style={styles.sortButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.sortButton,
-                sortBy === 'name' && styles.activeSortButton
-              ]}
-              onPress={() => handleSort('name')}
-            >
-              <Text style={[
-                styles.sortButtonText,
-                sortBy === 'name' && styles.activeSortButtonText
-              ]}>
-                Name
-              </Text>
-              {sortBy === 'name' && (
-                sortOrder === 'asc' ? 
-                <ChevronUp size={16} color={colors.primary} /> : 
-                <ChevronDown size={16} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.sortButton,
-                sortBy === 'price' && styles.activeSortButton
-              ]}
-              onPress={() => handleSort('price')}
-            >
-              <Text style={[
-                styles.sortButtonText,
-                sortBy === 'price' && styles.activeSortButtonText
-              ]}>
-                Price
-              </Text>
-              {sortBy === 'price' && (
-                sortOrder === 'asc' ? 
-                <ChevronUp size={16} color={colors.primary} /> : 
-                <ChevronDown size={16} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.sortButton,
-                sortBy === 'stock' && styles.activeSortButton
-              ]}
-              onPress={() => handleSort('stock')}
-            >
-              <Text style={[
-                styles.sortButtonText,
-                sortBy === 'stock' && styles.activeSortButtonText
-              ]}>
-                Stock
-              </Text>
-              {sortBy === 'stock' && (
-                sortOrder === 'asc' ? 
-                <ChevronUp size={16} color={colors.primary} /> : 
-                <ChevronDown size={16} color={colors.primary} />
-              )}
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-      
-      <View style={styles.listHeader}>
-        <Text style={styles.productCount}>
-          {filteredProducts.length} products
-        </Text>
-        
+
         <Button
-          title="Add Product"
-          onPress={handleAddProduct}
+          title="Thêm"
           size="small"
-          leftIcon={<Plus size={16} color="#fff" />}
+          icon={<Plus size={18} color="#fff" />}
+          onPress={() => router.push('/admin/product/new')}
+          style={{
+            height: 48,
+            paddingVertical: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginTop: -15,     // 🔥 đẩy nút lên trên 10px
+          }}
         />
+
+
       </View>
-      
+
+      {/* Sort bar */}
+      <View style={styles.sortBar}>
+        <Text style={styles.resultText}>{filteredProducts.length} sản phẩm</Text>
+        <View style={styles.sortButtons}>
+          {(['tenSanPham', 'giaBan', 'soLuong', 'ngayTao'] as const).map(field => (
+            <TouchableOpacity
+              key={field}
+              style={[
+                styles.sortBtn,
+                sortBy === field && styles.activeSortBtn
+              ]}
+              onPress={() => handleSort(field)}
+            >
+              <Text style={[
+                styles.sortBtnText,
+                sortBy === field && styles.activeSortBtnText
+              ]}>
+                {field === 'tenSanPham' && 'Tên'}
+                {field === 'giaBan' && 'Giá'}
+                {field === 'soLuong' && 'Tồn kho'}
+                {field === 'ngayTao' && 'Mới nhất'}
+              </Text>
+              {sortBy === field && (
+                sortOrder === 'asc' ?
+                  <ChevronUp size={14} color={colors.primary} /> :
+                  <ChevronDown size={14} color={colors.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Danh sách */}
       <FlatList
         data={filteredProducts}
-        renderItem={renderProductItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
+        renderItem={renderProduct}
+        keyExtractor={item => item.maSanPham.toString()}
+        contentContainerStyle={styles.list}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No products found</Text>
-            <Text style={styles.emptySubtext}>Try a different search term</Text>
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>Không tìm thấy sản phẩm</Text>
           </View>
         }
       />
@@ -283,157 +318,76 @@ export default function AdminProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.card,
-  },
+  container: { flex: 1, backgroundColor: colors.background },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, color: colors.textLight, fontSize: 16 },
   header: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  searchContainer: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  filterButton: {
-    marginLeft: 12,
-    width: 48,
-    height: 48,
-    borderRadius: 8,
     backgroundColor: colors.card,
-    justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
+    gap: 12,
   },
-  filtersContainer: {
-    padding: 16,
-    backgroundColor: colors.background,
+  searchInput: { flex: 1 },
+  sortBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: colors.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  filtersTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  sortButtons: {
-    flexDirection: 'row',
-  },
-  sortButton: {
+  resultText: { fontSize: 14, color: colors.textLight },
+  sortButtons: { flexDirection: 'row', gap: 8 },
+  sortBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: colors.card,
-    marginRight: 8,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  activeSortButton: {
+  activeSortBtn: {
     backgroundColor: colors.primary + '20',
     borderColor: colors.primary,
   },
-  sortButtonText: {
-    fontSize: 14,
-    color: colors.text,
-    marginRight: 4,
+  sortBtnText: { fontSize: 13, color: colors.text, marginRight: 4 },
+  activeSortBtnText: { color: colors.primary, fontWeight: '600' },
+  list: { padding: 16 },
+  productCard: { marginBottom: 12, padding: 12 },
+  productRow: { flexDirection: 'row', alignItems: 'center' },
+  productImage: { width: 70, height: 70, borderRadius: 10 },
+  productInfo: { flex: 1, marginLeft: 12 },
+  productName: { fontSize: 16, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  productCategory: { fontSize: 13, color: colors.textLight, marginBottom: 6 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4 },
+  salePrice: { fontSize: 15, fontWeight: 'bold', color: colors.primary },
+  originalPrice: { fontSize: 13, textDecorationLine: 'line-through', color: colors.textLight },
+  normalPrice: { fontSize: 15, fontWeight: 'bold', color: colors.text },
+  saleBadge: {
+    backgroundColor: colors.error,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  activeSortButtonText: {
-    color: colors.primary,
-    fontWeight: '500',
+  saleBadgeText: { color: '#fff', fontSize: 11, fontWeight: 'bold' },
+  stockText: { fontSize: 13, color: colors.success },
+  actions: { flexDirection: 'row', gap: 8 },
+  editBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.primary + '10',
+    justifyContent: 'center', alignItems: 'center',
   },
-  listHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
+  deleteBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.error + '10',
+    justifyContent: 'center', alignItems: 'center',
   },
-  productCount: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  listContent: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  productCard: {
-    marginBottom: 12,
-    padding: 12,
-  },
-  productContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  productImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-  },
-  productInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  productCategory: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 4,
-  },
-  productDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  productPrice: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  productStock: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    marginLeft: 12,
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: colors.card,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  deleteButton: {
-    borderColor: colors.error + '40',
-  },
-  emptyContainer: {
-    padding: 24,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textLight,
-    textAlign: 'center',
-  },
+  empty: { padding: 40, alignItems: 'center' },
+  emptyText: { fontSize: 16, color: colors.textLight },
 });
