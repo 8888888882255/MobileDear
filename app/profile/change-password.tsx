@@ -15,13 +15,17 @@ import { Lock, ChevronLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
+import { AuthService } from '@/src/services/authService';
 import colors from '@/constants/colors';
+import Constants from 'expo-constants';
+
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useUserStore();
+  const { user, isAuthenticated } = useUserStore();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     router.replace('/auth/login');
     return null;
   }
@@ -71,20 +75,73 @@ export default function ChangePasswordScreen() {
     return isValid;
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!validateForm()) return;
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      Alert.alert('Thành công', 'Đổi mật khẩu thành công', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+    try {
+      const token = await AuthService.getStoredToken();
+      
+      // Create FormData for [FromForm] binding
+      const formData = new FormData();
+      formData.append('MaNguoiDung', user.id);
+      formData.append('MatKhauCu', currentPassword);
+      formData.append('MatKhauMoi', newPassword);
+      formData.append('XacNhanMatKhau', confirmPassword);
+      // Required fields that backend needs
+      formData.append('HoTen', user.name);
+      formData.append('Email', user.email);
+      formData.append('VaiTro', user.isAdmin ? '1' : '0');
+      formData.append('TrangThai', '1');
+      
+      const response = await fetch(`${API_URL}/api/NguoiDung/${user.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Change password error:', errorText);
+        
+        // Parse error message
+        let errorMessage = 'Đổi mật khẩu thất bại';
+        if (errorText.includes('Mật khẩu cũ không đúng')) {
+          errorMessage = 'Mật khẩu hiện tại không đúng';
+        } else if (errorText.includes('không khớp')) {
+          errorMessage = 'Mật khẩu mới và xác nhận không khớp';
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Success
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    }, 1500);
+      
+      if (Platform.OS === 'web') {
+        window.alert('Đổi mật khẩu thành công!');
+        router.back();
+      } else {
+        Alert.alert('Thành công', 'Đổi mật khẩu thành công', [
+          { text: 'OK', onPress: () => router.back() },
+        ]);
+      }
+    } catch (error: any) {
+      console.error('Change password failed:', error);
+      
+      if (Platform.OS === 'web') {
+        window.alert(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+      } else {
+        Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
