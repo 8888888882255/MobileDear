@@ -132,3 +132,68 @@ export interface LoginRequest {
   taiKhoan: string;
   matKhau: string;
 }
+
+// GiaoDien (Settings) interfaces
+export interface GiaoDien {
+  maGiaoDien: number;
+  tenGiaoDien: string;
+  loaiGiaoDien: number; // 1=Logo, 2=Banner, 3=Slider
+  moTa?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  ngayTao: string;
+  trangThai: number;
+  medias?: Media[];
+}
+
+export interface Media {
+  maMedia: number;
+  loaiMedia: string;
+  duongDan: string;
+  altMedia?: string;
+  linkMedia?: string;
+  ngayTao: string;
+  trangThai: number;
+  maSanPham?: number;
+  tenSanPham?: string;
+  maBinhLuan?: number;
+}
+
+export interface GiaoDienCreate {
+  tenGiaoDien: string;
+  loaiGiaoDien: number;
+  moTa?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  trangThai?: number;
+}
+
+export interface GiaoDienEdit {
+  maGiaoDien?: number;
+  tenGiaoDien?: string;
+  loaiGiaoDien?: number;
+  moTa?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  trangThai?: number;
+}
+
+export interface MediaCreate {
+  loaiMedia: string;
+  duongDan: string;
+  altMedia?: string;
+  linkMedia?: string;
+  maGiaoDien?: number;
+  trangThai?: number;
+}
+
+export const SETTING_TYPES = {
+  LOGO: 1,
+  BANNER: 2,
+  SLIDER: 3,
+} as const;
+
+export type SettingType = typeof SETTING_TYPES[keyof typeof SETTING_TYPES];

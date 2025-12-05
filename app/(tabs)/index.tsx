@@ -15,9 +15,10 @@ import Constants from 'expo-constants';
 import { BannerCarousel } from '@/components/BannerCarousel';
 import { ProductCard } from '@/components/ProductCard';
 import { CategoryCard } from '@/components/CategoryCard';
-import { banners } from '@/mocks/banners';
+import { banners as mockBanners } from '@/mocks/banners';
 import colors from '@/constants/colors';
-import { Category } from '@/types';
+import { Category, Banner, GiaoDien, SETTING_TYPES } from '@/types';
+import { SettingsService } from '@/src/services/settingsService';
 
 interface ApiProduct {
   maSanPham: number;
@@ -112,9 +113,57 @@ export default function HomeScreen() {
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [hotSaleProducts, setHotSaleProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<Banner[]>(mockBanners);
   const [isLoadingNewest, setIsLoadingNewest] = useState(false);
   const [isLoadingHotSale, setIsLoadingHotSale] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [isLoadingBanners, setIsLoadingBanners] = useState(false);
+
+  // Map GiaoDien to Banner format
+  const mapGiaoDienToBanner = (item: GiaoDien): Banner | null => {
+    const media = item.medias?.[0];
+    if (!media) return null;
+    
+    const imagePath = media.duongDan;
+    const imageUrl = imagePath.startsWith('http') || imagePath.startsWith('data:')
+      ? imagePath
+      : `${API_URL}${imagePath}`;
+    
+    return {
+      id: String(item.maGiaoDien),
+      image: imageUrl,
+      title: item.tenGiaoDien,
+      subtitle: item.moTa || undefined,
+      buttonText: media.linkMedia ? 'Xem ngay' : undefined,
+      link: media.linkMedia || '/search',
+    };
+  };
+
+  // Load sliders from API (only sliders, not banners)
+  const loadBanners = useCallback(async () => {
+    setIsLoadingBanners(true);
+    try {
+      console.log('🎨 Loading sliders from API...');
+      const sliders = await SettingsService.getActiveSliders();
+      
+      const mappedBanners = sliders
+        .map(mapGiaoDienToBanner)
+        .filter((b): b is Banner => b !== null);
+      
+      if (mappedBanners.length > 0) {
+        setBanners(mappedBanners);
+        console.log('✅ Sliders loaded from API:', mappedBanners.length);
+      } else {
+        console.log('ℹ️ No API sliders, using mock data');
+        setBanners(mockBanners);
+      }
+    } catch (error) {
+      console.error('❌ Error loading sliders:', error);
+      setBanners(mockBanners); // Fallback to mock data
+    } finally {
+      setIsLoadingBanners(false);
+    }
+  }, []);
 
   // Load categories
   const loadCategories = useCallback(async () => {
@@ -193,18 +242,20 @@ export default function HomeScreen() {
 
   // Load products on mount
   useEffect(() => {
+    loadBanners();
     loadCategories();
     loadNewestProducts();
     loadHotSaleProducts();
-  }, [loadCategories, loadNewestProducts, loadHotSaleProducts]);
+  }, [loadBanners, loadCategories, loadNewestProducts, loadHotSaleProducts]);
 
   // Refresh products when screen is focused
   useFocusEffect(
     useCallback(() => {
+      loadBanners();
       loadCategories();
       loadNewestProducts();
       loadHotSaleProducts();
-    }, [loadCategories, loadNewestProducts, loadHotSaleProducts])
+    }, [loadBanners, loadCategories, loadNewestProducts, loadHotSaleProducts])
   );
 
   const navigateToAllProducts = () => {

@@ -15,7 +15,8 @@ import {
   TrendingUp, 
   DollarSign,
   ChevronRight,
-  BarChart4
+  BarChart4,
+  Settings
 } from 'lucide-react-native';
 import { Card } from '@/components/ui/Card';
 import { useUserStore } from '@/store/user-store';
@@ -104,6 +105,14 @@ export default function AdminDashboardScreen() {
             >
               <BarChart4 size={24} color={colors.primary} />
               <Text style={styles.actionText}>Analytics</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => router.push('/admin/settings')}
+            >
+              <Settings size={24} color={colors.primary} />
+              <Text style={styles.actionText}>Giao diện</Text>
             </TouchableOpacity>
           </View>
         </View>
