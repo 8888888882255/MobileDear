@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,117 +10,143 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 import { ProductCard } from '@/components/ProductCard';
 import colors from '@/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-interface ApiProduct {
-  maSanPham: number;
-  tenSanPham: string;
-  moTa?: string;
-  giaBan: number;
-  giaSale?: number;
-  giaSauSale: number;
-  soLuong: number;
-  danhGiaTrungBinh?: number;
-  soLuongDanhGia?: number;
-  medias: Array<{ duongDan: string }>;
-  tenLoai?: string;
-  tenThuongHieu?: string;
-  phanTramSale?: number;
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+// Nếu chạy trên emulator Android thì localhost phải là 10.0.2.2
+// Nếu chạy trên iOS simulator hoặc thiết bị thật thì dùng localhost hoặc IP máy
+
+interface WishlistItem {
+  id: string;
+  likedAt: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  discountPrice?: number;
+  salePercent?: number;
+  images: string[];
+  category: string;
+  subcategory?: string;
+  rating: number;
+  reviewCount: number;
+  stock: number;
+  likedAt: string;
 }
 
 export default function WishlistScreen() {
   const router = useRouter();
-  const [items, setItems] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
-
-  const loadWishlist = async () => {
-    setIsLoading(true);
+  const fetchProductById = async (id: string): Promise<Product | null> => {
     try {
-      console.log("📌 Loading wishlist...");
-      // Lấy danh sách ID yêu thích từ AsyncStorage
-      const raw = await AsyncStorage.getItem("wishlist");
-      const wishlist = raw ? JSON.parse(raw) : [];
-      // Format: [{ id: "12", likedAt: "2025-12-04T21:00:00" }]
-      if (wishlist.length === 0) {
-        setItems([]);
-        return;
+      const response = await fetch(`${API_URL}/api/SanPham/${id}`);
+      if (!response.ok) {
+        console.warn(`Sản phẩm ID ${id} không tồn tại hoặc lỗi (${response.status})`);
+        return null;
       }
-      // Gọi API sản phẩm (không lọc ID)
-      const res = await fetch(
-        `${API_URL}/api/SanPham/filter?page=1&pageSize=2000&sortBy=newest`
-      );
-      if (!res.ok) throw new Error("API error " + res.status);
-      const data = await res.json();
-      const products = Array.isArray(data) ? data : data.data || [];
-      // ⭐ Chỉ giữ lại sản phẩm có ID nằm trong wishlist
-      const filtered = products.filter((item: ApiProduct) =>
-        wishlist.some((w: any) => Number(w.id) === item.maSanPham)
-      );
-      // ⭐ Map dữ liệu sang ProductCard format
-      let mapped = filtered.map((item: ApiProduct) => {
-        const id = String(item.maSanPham);
-        const saved = wishlist.find((w: any) => w.id === id);
-        return {
-          id,
-          name: item.tenSanPham,
-          description: item.moTa || "",
-          price: item.giaBan,
-          discountPrice: item.giaSauSale ?? item.giaSale ?? null,
-          salePercent: item.phanTramSale ?? undefined,
-          images: (item.medias || []).map(m => {
-            const path = m.duongDan || "";
-            return path.startsWith("http") || path.startsWith("data:")
+      const data = await response.json();
+
+      const baseUrl = API_URL.endsWith('/') ? API_URL : API_URL + '/';
+
+      return {
+        id: String(data.maSanPham),
+        name: data.tenSanPham || 'Không có tên',
+        description: data.moTa || '',
+        price: data.giaBan || 0,
+        discountPrice: data.giaSauSale > 0 ? data.giaSauSale : (data.giaSale || undefined),
+        salePercent: data.phanTramSale || undefined,
+        images: (data.medias || [])
+          .map((m: any) => {
+            const path = m.duongDan || '';
+            if (!path) return null;
+            return path.startsWith('http') || path.startsWith('data:')
               ? path
-              : `${API_URL}${path}`;
-          }),
-          category: item.tenLoai ?? "Khác",
-          subcategory: item.tenThuongHieu ?? undefined,
-          rating: item.danhGiaTrungBinh ?? 0,
-          reviewCount: item.soLuongDanhGia ?? 0,
-          stock: item.soLuong ?? 0,
-          // ⭐ Quan trọng: giữ thời gian yêu thích để sort
-          likedAt: saved?.likedAt || "2000-01-01",
-        };
-      });
-      // ⭐ Đưa sản phẩm mới yêu thích lên đầu
-      mapped.sort(
-        (a: any, b: any) => new Date(b.likedAt).getTime() - new Date(a.likedAt).getTime()
-      );
-      setItems(mapped);
-      console.log("✅ Wishlist loaded:", mapped.length);
+              : baseUrl + path.replace(/^\//, '');
+          })
+          .filter(Boolean),
+        category: data.tenLoai || 'Khác',
+        subcategory: data.tenThuongHieu || undefined,
+        rating: data.danhGiaTrungBinh || 0,
+        reviewCount: data.soLuongDanhGia || 0,
+        stock: data.soLuong || 0,
+        likedAt: new Date().toISOString(), // sẽ được gán lại đúng từ wishlist
+      };
     } catch (err) {
-      console.error("❌ Wishlist load error:", err);
-      Alert.alert("Lỗi", "Không thể tải danh sách yêu thích!");
-    } finally {
-      setIsLoading(false);
+      console.warn(`Lỗi khi lấy sản phẩm ID ${id}:`, err);
+      return null;
     }
   };
 
-  useEffect(() => {
-    loadWishlist();
+  const loadWishlist = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const raw = await AsyncStorage.getItem('wishlist');
+      const wishlist: WishlistItem[] = raw ? JSON.parse(raw) : [];
+
+      if (wishlist.length === 0) {
+        setProducts([]);
+        setIsLoading(false);
+        return;
+      }
+
+      // Lấy dữ liệu từng sản phẩm song song
+      const fetchPromises = wishlist.map(async (item) => {
+        const product = await fetchProductById(item.id);
+        if (product) {
+          product.likedAt = item.likedAt; // Gán lại thời gian yêu thích chính xác
+          return product;
+        }
+        return null;
+      });
+
+      const results = await Promise.all(fetchPromises);
+      const validProducts = results.filter((p): p is Product => p !== null);
+
+      // Sắp xếp theo thời gian yêu thích (mới nhất trước)
+      validProducts.sort(
+        (a, b) => new Date(b.likedAt).getTime() - new Date(a.likedAt).getTime()
+      );
+
+      setProducts(validProducts);
+      console.log(`Đã tải ${validProducts.length}/${wishlist.length} sản phẩm yêu thích`);
+    } catch (error) {
+      console.error('Lỗi tải wishlist:', error);
+      Alert.alert('Lỗi', 'Không thể tải danh sách yêu thích');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const handleClearWishlist = () => {
-    if (items.length === 0) return;
+  // Tải lại khi quay lại màn hình này
+  useFocusEffect(
+    useCallback(() => {
+      loadWishlist();
+    }, [loadWishlist])
+  );
 
+  const clearWishlist = () => {
     Alert.alert(
-      'Xóa danh sách yêu thích',
-      'Bạn có chắc chắn muốn xóa toàn bộ sản phẩm khỏi danh sách yêu thích không?',
+      'Xóa toàn bộ',
+      'Bạn có chắc muốn xóa tất cả sản phẩm khỏi danh sách yêu thích?',
       [
         { text: 'Hủy', style: 'cancel' },
-        { 
-          text: 'Xóa hết', 
-          style: 'destructive', 
+        {
+          text: 'Xóa hết',
+          style: 'destructive',
           onPress: async () => {
             await AsyncStorage.removeItem('wishlist');
-            setItems([]);
-          } 
+            setProducts([]);
+            Alert.alert('Thành công', 'Đã xóa toàn bộ danh sách yêu thích');
+          },
         },
       ]
     );
@@ -129,27 +155,24 @@ export default function WishlistScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.emptyTitle, { marginTop: 12 }]}>Đang tải...</Text>
+          <Text style={styles.loadingText}>Đang tải sản phẩm yêu thích...</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  if (items.length === 0) {
+  if (products.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.emptyContainer}>
-          <Heart size={64} color={colors.textLight} />
-          <Text style={styles.emptyTitle}>Danh sách yêu thích trống</Text>
+          <Heart size={80} color={colors.textLight} strokeWidth={1.5} />
+          <Text style={styles.emptyTitle}>Chưa có sản phẩm yêu thích</Text>
           <Text style={styles.emptySubtitle}>
-            Hãy lưu lại những sản phẩm bạn yêu thích để xem sau
+            Nhấn vào biểu tượng trái tim để lưu sản phẩm bạn thích
           </Text>
-          <TouchableOpacity
-            style={styles.exploreButton}
-            onPress={() => router.push('/')}
-          >
+          <TouchableOpacity style={styles.exploreButton} onPress={() => router.push('/')}>
             <Text style={styles.exploreButtonText}>Khám phá ngay</Text>
           </TouchableOpacity>
         </View>
@@ -160,19 +183,21 @@ export default function WishlistScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Danh sách yêu thích</Text>
-        <TouchableOpacity onPress={handleClearWishlist}>
-          <Text style={styles.clearText}>Xóa hết</Text>
-        </TouchableOpacity>
+        <Text style={styles.title}>Yêu thích ({products.length})</Text>
+        {products.length > 0 && (
+          <TouchableOpacity onPress={clearWishlist}>
+            <Text style={styles.clearText}>Xóa hết</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <FlatList
-        data={items}
+        data={products}
         renderItem={({ item }) => <ProductCard product={item} />}
         keyExtractor={(item) => item.id}
         numColumns={2}
-        columnWrapperStyle={styles.columnWrapper}
-        contentContainerStyle={styles.listContent}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
@@ -180,70 +205,26 @@ export default function WishlistScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.card,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, backgroundColor: colors.card },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 16, fontSize: 16, color: colors.textLight },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    backgroundColor: colors.background,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  clearText: {
-    fontSize: 14,
-    color: colors.error,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 16,
-  },
-  columnWrapper: {
-    justifyContent: 'space-between',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: colors.textLight,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
-  },
+  title: { fontSize: 19, fontWeight: 'bold', color: colors.text },
+  clearText: { fontSize: 15, color: colors.error, fontWeight: '600' },
+  listContainer: { padding: 12 },
+  gridRow: { justifyContent: 'space-between', marginBottom: 12 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },
+  emptyTitle: { marginTop: 20, fontSize: 20, fontWeight: 'bold', color: colors.text },
+  emptySubtitle: { marginTop: 8, fontSize: 14, color: colors.textLight, textAlign: 'center' },
+  exploreButton: { marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 8 },
+  exploreButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

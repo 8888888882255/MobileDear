@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Alert,
@@ -10,25 +10,22 @@ import {
   Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { 
-  User, 
-  Package, 
-  Heart, 
-  MapPin, 
-  Settings, 
+import {
+  User,
+  Package,
+  Heart,
+  MapPin,
+  Settings,
   LogOut,
   ChevronRight,
   ShieldCheck,
   Ticket,
   MessageSquare,
   Lock,
-  FileText,
   RefreshCw
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
-import { PostCard } from '@/components/PostCard';
 import { useUserStore } from '@/store/user-store';
-import { usePostsStore } from '@/store/posts-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 
@@ -37,23 +34,19 @@ const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout, refreshUserProfile } = useUserStore();
-  const { getUserPosts } = usePostsStore();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (user) {
-      // Refresh user profile when component mounts
       handleRefreshProfile();
     }
   }, []);
-  
-  const userPosts = user ? getUserPosts(user.id) : [];
-  
+
   const handleLogin = () => {
     router.push('/auth/login');
   };
-  
+
   const handleRefreshProfile = async () => {
     setIsRefreshing(true);
     try {
@@ -67,21 +60,14 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     console.log('Profile - handleLogout called');
-    
+
     if (Platform.OS === 'web') {
-      // Web platform - use window.confirm
       const confirmed = window.confirm('Bạn có chắc chắn muốn đăng xuất?');
-      if (!confirmed) {
-        console.log('Profile - Logout cancelled by user');
-        return;
-      }
-      
-      console.log('Profile - User confirmed logout on web');
+      if (!confirmed) return;
+
       setIsLoggingOut(true);
-      
       logout()
         .then(() => {
-          console.log('Profile - Logout successful');
           window.alert('Đã đăng xuất thành công!');
         })
         .catch((error) => {
@@ -92,89 +78,75 @@ export default function ProfileScreen() {
           setIsLoggingOut(false);
         });
     } else {
-      // Mobile platform - use Alert.alert
-      console.log('Profile - Showing logout confirmation on mobile');
       Alert.alert(
         "Đăng xuất",
         "Bạn có chắc chắn muốn đăng xuất?",
         [
-          { 
-            text: "Hủy", 
-            style: "cancel",
-            onPress: () => console.log('Profile - Logout cancelled by user')
-          },
-          { 
-            text: "Đăng xuất", 
-            style: "destructive", 
+          { text: "Hủy", style: "cancel" },
+          {
+            text: "Đăng xuất",
+            style: "destructive",
             onPress: async () => {
-              console.log('Profile - User confirmed logout on mobile');
               setIsLoggingOut(true);
               try {
                 await logout();
-                console.log('Profile - Logout successful');
-                
-                // Show success message
-                Alert.alert(
-                  'Thành công',
-                  'Đã đăng xuất thành công!',
-                  [{ text: 'OK' }]
-                );
+                Alert.alert('Thành công', 'Đã đăng xuất thành công!', [{ text: 'OK' }]);
               } catch (error) {
                 console.error('Profile - Logout error:', error);
                 Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
               } finally {
                 setIsLoggingOut(false);
               }
-            } 
+            }
           }
         ]
       );
     }
   };
-  
+
   const navigateToAdminDashboard = () => {
     router.push('/admin/dashboard');
   };
-  
+
   if (!isAuthenticated) {
     return (
       <View style={styles.container}>
         <View style={styles.notLoggedInContainer}>
           <User size={64} color={colors.textLight} />
-          <Text style={styles.notLoggedInTitle}>Not logged in</Text>
+          <Text style={styles.notLoggedInTitle}>Chưa đăng nhập</Text>
           <Text style={styles.notLoggedInSubtitle}>
-            Login to view your profile, orders, and more
+            Đăng nhập để xem hồ sơ, đơn hàng và nhiều hơn nữa
           </Text>
           <Button
-            title="Login"
+            title="Đăng nhập"
             onPress={handleLogin}
             style={styles.loginButton}
           />
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => router.push('/auth/register')}
             style={styles.registerButton}
           >
             <Text style={styles.registerButtonText}>
-              Don't have an account? Register
+              Chưa có tài khoản? Đăng ký ngay
             </Text>
           </TouchableOpacity>
         </View>
       </View>
     );
   }
-  
+
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.profileHeader}>
           <View style={styles.avatarContainer}>
             {user?.avatar ? (
-              <Image 
-                source={{ uri: user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}` }} 
-                style={styles.avatar} 
+              <Image
+                source={{ uri: user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}` }}
+                style={styles.avatar}
               />
             ) : (
               <View style={styles.avatarPlaceholder}>
@@ -184,25 +156,25 @@ export default function ProfileScreen() {
               </View>
             )}
           </View>
-          
+
           <View style={styles.profileInfo}>
             <Text style={styles.userName}>{user?.name}</Text>
             <Text style={styles.userEmail}>{user?.email}</Text>
           </View>
-          
+
           <View style={styles.actionButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.refreshButton}
               onPress={handleRefreshProfile}
               disabled={isRefreshing}
             >
-              <RefreshCw 
-                size={16} 
-                color={isRefreshing ? colors.textLight : colors.primary} 
+              <RefreshCw
+                size={16}
+                color={isRefreshing ? colors.textLight : colors.primary}
                 style={isRefreshing ? { transform: [{ rotate: '360deg' }] } : undefined}
               />
             </TouchableOpacity>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.editProfileButton}
               onPress={() => router.replace('/profile/edit')}
             >
@@ -210,9 +182,9 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        
+
         {user?.isAdmin && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.menuItem, styles.adminMenuItem]}
             onPress={navigateToAdminDashboard}
           >
@@ -223,113 +195,78 @@ export default function ProfileScreen() {
             <ChevronRight size={20} color="#fff" />
           </TouchableOpacity>
         )}
-        
+
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>My Account</Text>
-          
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => console.log('Orders navigation - to be implemented')}
-          >
-            <View style={styles.menuItemLeft}>
-              <Package size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>My Orders</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => router.push('/wishlist')}
-          >
-            <View style={styles.menuItemLeft}>
-              <Heart size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Wishlist</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => console.log('Addresses navigation - to be implemented')}
-          >
-            <View style={styles.menuItemLeft}>
-              <MapPin size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Addresses</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => console.log('Vouchers navigation - to be implemented')}
-          >
-            <View style={styles.menuItemLeft}>
-              <Ticket size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>My Vouchers</Text>
-            </View>
-            <ChevronRight size={20} color={colors.textLight} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
+          <Text style={styles.menuSectionTitle}>Tài khoản của tôi</Text>
+
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push('/profile/change-password')}
           >
             <View style={styles.menuItemLeft}>
               <Lock size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Change Password</Text>
+              <Text style={styles.menuItemText}>Đổi mật khẩu</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-        </View>
-        
-        <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Settings & Support</Text>
-          
-          <TouchableOpacity 
+
+          <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => console.log('Settings navigation - to be implemented')}
+            onPress={() => router.push('/wishlist')}
           >
+            <View style={styles.menuItemLeft}>
+              <Heart size={20} color={colors.text} />
+              <Text style={styles.menuItemText}>Danh sách yêu thích</Text>
+            </View>
+            <ChevronRight size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}
+          onPress={() => router.push('/search')}>
+            <View style={styles.menuItemLeft}>
+              <Ticket size={20} color={colors.text} />
+              <Text style={styles.menuItemText}>Cửa hàng của tôi</Text>
+            </View>
+            <ChevronRight size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}
+            onPress={() => router.push('/')}
+          >
+            <View style={styles.menuItemLeft}>
+              <Package size={20} color={colors.text} />
+              <Text style={styles.menuItemText}>Trang Chủ</Text>
+            </View>
+            <ChevronRight size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+
+
+
+        </View>
+
+        <View style={styles.menuSection}>
+          <Text style={styles.menuSectionTitle}>Cài đặt & Hỗ trợ</Text>
+
+          <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
               <Settings size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>App Settings</Text>
+              <Text style={styles.menuItemText}>Cài đặt ứng dụng</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => console.log('Contact navigation - to be implemented')}
-          >
+
+          <TouchableOpacity style={styles.menuItem}>
             <View style={styles.menuItemLeft}>
               <MessageSquare size={20} color={colors.text} />
-              <Text style={styles.menuItemText}>Contact Us</Text>
+              <Text style={styles.menuItemText}>Liên hệ hỗ trợ</Text>
             </View>
             <ChevronRight size={20} color={colors.textLight} />
           </TouchableOpacity>
         </View>
 
-        {userPosts.length > 0 && (
-          <View style={styles.menuSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.menuSectionTitle}>My Posts</Text>
-              <TouchableOpacity 
-                onPress={() => console.log('User posts navigation - to be implemented')}
-                style={styles.viewAllButton}
-              >
-                <Text style={styles.viewAllText}>View All</Text>
-                <ChevronRight size={16} color={colors.primary} />
-              </TouchableOpacity>
-            </View>
-            
-            {userPosts.slice(0, 2).map((post) => (
-              <PostCard key={post.id} post={post} />
-            ))}
-          </View>
-        )}
-        
         <Button
-          title="Logout"
+          title="Đăng xuất"
           variant="outline"
           onPress={handleLogout}
           loading={isLoggingOut}
@@ -340,6 +277,7 @@ export default function ProfileScreen() {
   );
 }
 
+// Styles giữ nguyên (không thay đổi)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -390,18 +328,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textLight,
   },
-  editProfileButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: colors.primary,
-  },
-  editProfileText: {
-    fontSize: 14,
-    color: colors.primary,
-    fontWeight: '500',
-  },
   actionButtons: {
     flexDirection: 'row',
     gap: 8,
@@ -415,6 +341,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  editProfileButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  editProfileText: {
+    fontSize: 14,
+    color: colors.primary,
+    fontWeight: '500',
+  },
   menuSection: {
     marginBottom: 24,
   },
@@ -423,21 +361,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: colors.primary,
-    marginRight: 4,
   },
   menuItem: {
     flexDirection: 'row',
