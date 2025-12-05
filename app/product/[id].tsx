@@ -1,6 +1,5 @@
-
-
-import React, { useState } from 'react';
+// app/(tabs)/product/[id]/index.tsx
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,104 +24,35 @@ import {
   MessageSquare,
 } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
-import { ProductReview } from '@/components/ProductReview';
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
+const DEFAULT_AVATAR = require('@/assets/images/icon.png'); // Avatar mặc định
 
-// Đánh giá mẫu
-const mockReviews = [
-  {
-    id: '1',
-    userId: '101',
-    userName: 'Nguyễn Văn An',
-    rating: 5,
-    title: 'Vải đẹp, size vừa vặn!',
-    comment: 'Áo chất lượng, giao hàng nhanh. Mặc lên rất đẹp. Sẽ ủng hộ thêm!',
-    date: '2024-07-01',
-    images: [
-      'https://images.unsplash.com/photo-1560243563-062bfc001d68?auto=format&fit=crop&w=500&q=60',
-    ],
-  },
-  {
-    id: '2',
-    userId: '102',
-    userName: 'Trần Thị Bình',
-    rating: 4,
-    title: 'Tạm ổn',
-    comment: 'Hàng ok nhưng màu hơi khác hình một chút.',
-    date: '2024-06-29',
-    images: [
-      'https://images.unsplash.com/photo-1560243563-062bfc001d68?auto=format&fit=crop&w=500&q=60',
-    ],
-  },
-];
+interface Review {
+  maBinhLuan: number;
+  tieuDe?: string;
+  noiDung?: string;
+  danhGia?: number;
+  ngayTao: string;
+  hoTen?: string;
+  avt?: string;
+  medias: { duongDan: string }[];
+}
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-
-  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
   const pid = Array.isArray(id) ? id[0] : id;
-  const productDetailUrl = (idValue: string | number) => `${API_URL}/api/SanPham/${idValue}`;
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch product by id from backend
-  React.useEffect(() => {
-    let mounted = true;
-    const fetchProduct = async () => {
-      if (!pid) return;
-      setIsLoading(true);
-      try {
-        const res = await fetch(productDetailUrl(pid));
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`API error ${res.status}: ${txt}`);
-        }
-        const data = await res.json();
-
-        // Map API response to app Product type
-        const mapped: Product = {
-          id: String(data.maSanPham),
-          name: data.tenSanPham,
-          description: data.moTa || '',
-          price: data.giaBan || 0,
-          discountPrice: data.giaSauSale ?? data.giaSale ?? undefined,
-          images: (data.medias || []).map((m: any) => {
-            const path = m.duongDan || '';
-            if (path.startsWith('http') || path.startsWith('data:')) return path;
-            return `${API_URL}${path}`;
-          }),
-          category: data.tenLoai || '',
-          subcategory: data.tenThuongHieu || undefined,
-          sizes: [],
-          colors: [],
-          tags: [],
-          rating: data.danhGiaTrungBinh ?? 0,
-          reviewCount: data.soLuongDanhGia ?? 0,
-          stock: data.soLuong ?? 0,
-          featured: false,
-          createdAt: data.ngayTao ?? new Date().toISOString(),
-          updatedAt: data.ngayTao ?? new Date().toISOString(),
-        };
-
-        if (mounted) setProduct(mapped);
-      } catch (err) {
-        console.error('Fetch product error:', err);
-        Alert.alert('Lỗi', 'Không thể tải thông tin sản phẩm.');
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    fetchProduct();
-    return () => { mounted = false; };
-  }, [pid]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   const { addItem: addToCart } = useCartStore();
   const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlistStore();
@@ -131,61 +61,99 @@ export default function ProductDetailScreen() {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
-  const [showAllReviews, setShowAllReviews] = useState(false);
+
+  // Fetch sản phẩm
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!pid) return;
+      try {
+        const res = await fetch(`${API_URL}/api/SanPham/${pid}`);
+        if (!res.ok) throw new Error('Không tải được sản phẩm');
+        const data = await res.json();
+
+        const mapped: Product = {
+          id: String(data.maSanPham),
+          name: data.tenSanPham,
+          description: data.moTa || 'Không có mô tả',
+          price: data.giaBan || 0,
+          discountPrice: data.giaSauSale ?? data.giaSale ?? undefined,
+          images: (data.medias || []).map((m: any) => `${API_URL}${m.duongDan}`),
+          category: data.tenLoai || '',
+          subcategory: data.tenThuongHieu || undefined,
+          rating: data.danhGiaTrungBinh ?? 0,
+          reviewCount: data.soLuongDanhGia ?? 0,
+          stock: data.soLuong ?? 0,
+          sizes: [], colors: [], tags: [], featured: false,
+          createdAt: data.ngayTao,
+          updatedAt: data.ngayTao,
+        };
+
+        setProduct(mapped);
+      } catch (err) {
+        Alert.alert('Lỗi', 'Không thể tải sản phẩm');
+      } finally {
+        setLoadingProduct(false);
+      }
+    };
+
+    fetchProduct();
+  }, [pid]);
+
+  // Fetch bình luận thật
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!pid) return;
+      try {
+        const res = await fetch(`${API_URL}/api/BinhLuan/search?maSanPham=${pid}`);
+        if (!res.ok) throw new Error('Không tải được đánh giá');
+        const data: Review[] = await res.json();
+
+        setReviews(data.filter(r => r.trangThai === 1)); // Chỉ hiện bình luận đã duyệt
+      } catch (err) {
+        console.log('Lỗi tải đánh giá:', err);
+      } finally {
+        setLoadingReviews(false);
+      }
+    };
+
+    if (product) fetchReviews();
+  }, [pid, product]);
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
-  if (isLoading) {
+
+  if (loadingProduct) {
     return (
-      <SafeAreaView style={styles.notFoundContainer}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={[styles.notFoundText, { marginTop: 12 }]}>Đang tải sản phẩm...</Text>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
-  if (!product && !isLoading) {
+  if (!product) {
     return (
-      <SafeAreaView style={styles.notFoundContainer}>
-        <Text style={styles.notFoundText}>Không tìm thấy sản phẩm</Text>
-        <Button title="Quay lại" onPress={() => router.back()} style={styles.backButton} />
+      <SafeAreaView style={styles.container}>
+        <View style={styles.center}>
+          <Text style={styles.notFoundText}>Không tìm thấy sản phẩm</Text>
+          <Button title="Quay lại" onPress={() => router.back()} />
+        </View>
       </SafeAreaView>
     );
   }
-
-  // TypeScript narrowing: product is guaranteed non-null here (we returned above),
-  // but help the compiler by asserting for local use.
-  if (!product) return null;
 
   const handleAddToCart = () => {
     setIsAddingToCart(true);
     setTimeout(() => {
-      // Sizes/colors removed; pass empty strings as placeholders
       addToCart(product!, quantity, '', '');
       setIsAddingToCart(false);
-      Alert.alert('Thành công', 'Sản phẩm đã được thêm vào giỏ hàng');
+      Alert.alert('Thành công', 'Đã thêm vào giỏ hàng');
     }, 500);
   };
 
   const handleToggleWishlist = () => {
-    isWishlisted ? removeFromWishlist(product!.id) : addToWishlist(product!);
-  };
-
-  const handleIncreaseQuantity = () => {
-    if (quantity < product.stock) setQuantity(quantity + 1);
-  };
-
-  const handleDecreaseQuantity = () => {
-    if (quantity > 1) setQuantity(quantity - 1);
-  };
-
-  const handleImageChange = (index: number) => setSelectedImage(index);
-
-  const nextImage = () => {
-    setSelectedImage((prev) => (prev + 1) % product.images.length);
-  };
-
-  const prevImage = () => {
-    setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length);
+    isWishlisted ? removeFromWishlist(product.id) : addToWishlist(product);
   };
 
   const handleWriteReview = () => {
@@ -196,58 +164,44 @@ export default function ProductDetailScreen() {
     }
   };
 
-  const displayedReviews = showAllReviews ? mockReviews : mockReviews.slice(0, 2);
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('vi-VN');
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Ảnh sản phẩm - giữ nguyên đẹp */}
         <View style={styles.imageContainer}>
-          <Image source={{ uri: product.images[selectedImage] }} style={styles.mainImage} />
-          <TouchableOpacity style={[styles.imageNavButton, styles.prevButton]} onPress={prevImage}>
+          <Image source={{ uri: product.images[selectedImage] || 'https://via.placeholder.com/400' }} style={styles.mainImage} />
+          <TouchableOpacity style={[styles.imageNavButton, styles.prevButton]} onPress={() => setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length)}>
             <ChevronLeft size={24} color="#fff" />
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.imageNavButton, styles.nextButton]} onPress={nextImage}>
+          <TouchableOpacity style={[styles.imageNavButton, styles.nextButton]} onPress={() => setSelectedImage((prev) => (prev + 1) % product.images.length)}>
             <ChevronRight size={24} color="#fff" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.wishlistButton} onPress={handleToggleWishlist}>
-            <Heart
-              size={24}
-              color={isWishlisted ? colors.error : '#fff'}
-              fill={isWishlisted ? colors.error : 'none'}
-            />
+            <Heart size={24} color={isWishlisted ? colors.error : '#fff'} fill={isWishlisted ? colors.error : 'none'} />
           </TouchableOpacity>
         </View>
 
         <View style={styles.thumbnailContainer}>
-          {product.images.map((image, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => handleImageChange(index)}
-              style={[
-                styles.thumbnailButton,
-                selectedImage === index && styles.selectedThumbnail,
-              ]}
-            >
-              <Image source={{ uri: image }} style={styles.thumbnail} />
+          {product.images.map((img, i) => (
+            <TouchableOpacity key={i} onPress={() => setSelectedImage(i)} style={[styles.thumbnailButton, selectedImage === i && styles.selectedThumbnail]}>
+              <Image source={{ uri: img }} style={styles.thumbnail} />
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.infoContainer}>
-          <Text style={styles.category}>
-            {product.category} • {product.subcategory}
-          </Text>
+          <Text style={styles.category}>{product.category} • {product.subcategory}</Text>
           <Text style={styles.name}>{product.name}</Text>
 
           <View style={styles.ratingContainer}>
             <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={16}
-                  color={star <= Math.floor(product.rating) ? colors.primary : colors.border}
-                  fill={star <= Math.floor(product.rating) ? colors.primary : 'none'}
-                />
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star key={s} size={16} color={s <= Math.round(product.rating) ? colors.primary : colors.border} fill={s <= Math.round(product.rating) ? colors.primary : 'none'} />
               ))}
             </View>
             <Text style={styles.ratingText}>
@@ -255,19 +209,14 @@ export default function ProductDetailScreen() {
             </Text>
           </View>
 
+          {/* Giá - giữ nguyên */}
           <View style={styles.priceContainer}>
             {product.discountPrice ? (
               <>
-                <Text style={styles.discountPrice}>
-                  {product.discountPrice.toLocaleString('vi-VN')}₫
-                </Text>
-                <Text style={styles.originalPrice}>
-                  {product.price.toLocaleString('vi-VN')}₫
-                </Text>
+                <Text style={styles.discountPrice}>{product.discountPrice.toLocaleString('vi-VN')}₫</Text>
+                <Text style={styles.originalPrice}>{product.price.toLocaleString('vi-VN')}₫</Text>
                 <View style={styles.discountBadge}>
-                  <Text style={styles.discountText}>
-                    -{Math.round((1 - product.discountPrice / product.price) * 100)}%
-                  </Text>
+                  <Text style={styles.discountText}>-{Math.round((1 - product.discountPrice / product.price) * 100)}%</Text>
                 </View>
               </>
             ) : (
@@ -275,24 +224,15 @@ export default function ProductDetailScreen() {
             )}
           </View>
 
-          {/* Size and color selection removed per request */}
-
+          {/* Số lượng */}
           <View style={styles.sectionContainer}>
             <Text style={styles.sectionTitle}>Số lượng</Text>
             <View style={styles.quantityContainer}>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={handleDecreaseQuantity}
-                disabled={quantity <= 1}
-              >
+              <TouchableOpacity style={styles.quantityButton} onPress={() => quantity > 1 && setQuantity(q => q - 1)} disabled={quantity <= 1}>
                 <Text style={styles.quantityButtonText}>-</Text>
               </TouchableOpacity>
               <Text style={styles.quantityText}>{quantity}</Text>
-              <TouchableOpacity
-                style={styles.quantityButton}
-                onPress={handleIncreaseQuantity}
-                disabled={quantity >= product.stock}
-              >
+              <TouchableOpacity style={styles.quantityButton} onPress={() => quantity < product.stock && setQuantity(q => q + 1)} disabled={quantity >= product.stock}>
                 <Text style={styles.quantityButtonText}>+</Text>
               </TouchableOpacity>
               <Text style={styles.stockText}>Còn {product.stock} sản phẩm</Text>
@@ -304,6 +244,7 @@ export default function ProductDetailScreen() {
             <Text style={styles.description}>{product.description}</Text>
           </View>
 
+          {/* ĐÁNH GIÁ THẬT TỪ BACKEND */}
           <View style={styles.reviewsContainer}>
             <View style={styles.reviewsHeader}>
               <Text style={styles.reviewsTitle}>Đánh giá từ khách hàng</Text>
@@ -313,23 +254,40 @@ export default function ProductDetailScreen() {
               </TouchableOpacity>
             </View>
 
-            {displayedReviews.length > 0 ? (
-              <>
-                {displayedReviews.map((review) => (
-                  <ProductReview key={review.id} review={review} />
-                ))}
-                {mockReviews.length > 2 && (
-                  <TouchableOpacity
-                    style={styles.showMoreButton}
-                    onPress={() => setShowAllReviews(!showAllReviews)}
-                  >
-                    <Text style={styles.showMoreText}>
-                      {showAllReviews ? 'Thu gọn' : `Xem tất cả (${mockReviews.length})`}
-                    </Text>
-                    <ChevronRight size={16} color={colors.primary} />
-                  </TouchableOpacity>
-                )}
-              </>
+            {loadingReviews ? (
+              <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: 20 }} />
+            ) : reviews.length > 0 ? (
+              reviews.map((review) => (
+                <View key={review.maBinhLuan} style={styles.reviewItem}>
+                  <View style={styles.reviewHeader}>
+                    <Image
+                      source={review.avt ? { uri: API_URL + review.avt } : DEFAULT_AVATAR}
+                      style={styles.reviewerAvatar}
+                      defaultSource={DEFAULT_AVATAR}
+                    />
+                    <View>
+                      <Text style={styles.reviewerName}>{review.hoTen || 'Khách hàng'}</Text>
+                      <View style={styles.starsContainer}>
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star key={s} size={14} color={s <= (review.danhGia || 0) ? '#facc15' : colors.border} fill={s <= (review.danhGia || 0) ? '#facc15' : 'none'} />
+                        ))}
+                      </View>
+                    </View>
+                    <Text style={styles.reviewDate}>{formatDate(review.ngayTao)}</Text>
+                  </View>
+
+                  {review.tieuDe && <Text style={styles.reviewTitle}>{review.tieuDe}</Text>}
+                  {review.noiDung && <Text style={styles.reviewComment}>{review.noiDung}</Text>}
+
+                  {review.medias.length > 0 && (
+                    <View style={styles.reviewImages}>
+                      {review.medias.map((media, idx) => (
+                        <Image key={idx} source={{ uri: API_URL + media.duongDan }} style={styles.reviewImage} />
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ))
             ) : (
               <Text style={styles.noReviewsText}>Chưa có đánh giá nào</Text>
             )}
@@ -337,6 +295,7 @@ export default function ProductDetailScreen() {
         </View>
       </ScrollView>
 
+      {/* Thanh dưới */}
       <View style={styles.bottomBar}>
         <View style={styles.priceBottomContainer}>
           <Text style={styles.priceBottomLabel}>Tạm tính</Text>
@@ -356,298 +315,60 @@ export default function ProductDetailScreen() {
   );
 }
 
+// Thêm styles cho phần đánh giá
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  notFoundContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  notFoundText: {
-    fontSize: 18,
-    marginBottom: 20,
-  },
-  backButton: {
-    width: 200,
-  },
-  imageContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 1.2,
-    position: 'relative',
-  },
-  mainImage: {
-    width: '100%',
-    height: '100%',
-  },
-  imageNavButton: {
-    position: 'absolute',
-    top: '50%',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    transform: [{ translateY: -20 }],
-  },
-  prevButton: {
-    left: 10,
-  },
-  nextButton: {
-    right: 10,
-  },
-  wishlistButton: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  thumbnailContainer: {
-    flexDirection: 'row',
-    padding: 10,
-    backgroundColor: '#fff',
-  },
-  thumbnailButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    overflow: 'hidden',
-  },
-  selectedThumbnail: {
-    borderColor: colors.primary,
-    borderWidth: 2,
-  },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
-  infoContainer: {
-    padding: 16,
-  },
-  headerContainer: {
-    marginBottom: 20,
-  },
-  category: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  starsContainer: {
-    flexDirection: 'row',
-    marginRight: 8,
-  },
-  ratingText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  price: {
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  discountPrice: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  originalPrice: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textDecorationLine: 'line-through',
-    marginLeft: 8,
-  },
-  discountBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginLeft: 8,
-  },
-  discountText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  sectionContainer: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  optionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  sizeOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  colorOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  selectedOption: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primaryLight,
-  },
-  sizeText: {
-    fontSize: 14,
-  },
-  colorText: {
-    fontSize: 14,
-  },
-  selectedOptionText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-  },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  quantityButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quantityButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  quantityText: {
-    fontSize: 16,
-    marginHorizontal: 16,
-    fontWeight: 'bold',
-  },
-  stockText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: 16,
-  },
-  description: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.text,
-  },
-  tagsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  tag: {
-    backgroundColor: colors.backgroundLight,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  tagText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  reviewsContainer: {
-    marginTop: 10,
-  },
-  reviewsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  reviewsTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  writeReviewButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  writeReviewText: {
-    marginLeft: 4,
-    color: colors.primary,
-    fontWeight: '500',
-  },
-  showMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    marginTop: 8,
-  },
-  showMoreText: {
-    color: colors.primary,
-    fontWeight: '500',
-    marginRight: 4,
-  },
-  noReviewsText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: 20,
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: '#fff',
-  },
-  priceBottomContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  priceBottomLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-  },
-  priceBottomValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  addToCartButton: {
-    flex: 1,
-    marginLeft: 16,
-  },
+  container: { flex: 1, backgroundColor: '#fff' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 12, fontSize: 16, color: colors.textLight },
+  notFoundText: { fontSize: 18, marginBottom: 20, color: colors.text },
+  imageContainer: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.2, position: 'relative' },
+  mainImage: { width: '100%', height: '100%' },
+  imageNavButton: { position: 'absolute', top: '50%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -20 }] },
+  prevButton: { left: 10 },
+  nextButton: { right: 10 },
+  wishlistButton: { position: 'absolute', top: 15, right: 15, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
+  thumbnailContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff' },
+  thumbnailButton: { width: 60, height: 60, borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#e0e0e0', overflow: 'hidden' },
+  selectedThumbnail: { borderColor: colors.primary, borderWidth: 2 },
+  thumbnail: { width: '100%', height: '100%' },
+  infoContainer: { padding: 16 },
+  category: { fontSize: 14, color: colors.textLight, marginBottom: 4 },
+  name: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  ratingContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  starsContainer: { flexDirection: 'row', marginRight: 8 },
+  ratingText: { fontSize: 14, color: colors.textLight },
+  priceContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  price: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
+  discountPrice: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
+  originalPrice: { fontSize: 16, color: colors.textLight, textDecorationLine: 'line-through', marginLeft: 8 },
+  discountBadge: { backgroundColor: colors.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginLeft: 8 },
+  discountText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  sectionContainer: { marginBottom: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  quantityContainer: { flexDirection: 'row', alignItems: 'center' },
+  quantityButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' },
+  quantityButtonText: { fontSize: 18, fontWeight: 'bold' },
+  quantityText: { fontSize: 16, marginHorizontal: 16, fontWeight: 'bold' },
+  stockText: { fontSize: 14, color: colors.textLight, marginLeft: 16 },
+  description: { fontSize: 16, lineHeight: 24, color: colors.text },
+  reviewsContainer: { marginTop: 20, paddingTop: 20, borderTopWidth: 8, borderTopColor: '#f5f5f5' },
+  reviewsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  reviewsTitle: { fontSize: 18, fontWeight: 'bold' },
+  writeReviewButton: { flexDirection: 'row', alignItems: 'center' },
+  writeReviewText: { marginLeft: 6, color: colors.primary, fontWeight: '600' },
+  reviewItem: { marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  reviewerAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  reviewerName: { fontSize: 15, fontWeight: '600' },
+  reviewDate: { fontSize: 12, color: colors.textLight, marginLeft: 'auto' },
+  reviewTitle: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  reviewComment: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
+  reviewImages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  reviewImage: { width: 80, height: 80, borderRadius: 8 },
+  noReviewsText: { fontSize: 15, color: colors.textLight, textAlign: 'center', paddingVertical: 30, fontStyle: 'italic' },
+  bottomBar: { flexDirection: 'row', padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: '#fff' },
+  priceBottomContainer: { flex: 1, justifyContent: 'center' },
+  priceBottomLabel: { fontSize: 14, color: colors.textLight },
+  priceBottomValue: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
+  addToCartButton: { flex: 1, marginLeft: 16 },
 });
