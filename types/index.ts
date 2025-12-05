@@ -31,6 +31,9 @@ export interface User {
   email: string;
   phone?: string;
   avatar?: string;
+  bio?: string;
+  gender?: number;
+  birthDate?: string;
   isAdmin: boolean;
   addresses: Address[];
 }

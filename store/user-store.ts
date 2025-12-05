@@ -210,12 +210,18 @@ export const useUserStore = create<UserState>()(
       try {
         set({ isLoading: true });
         const userData = await AuthService.getUserProfile(parseInt(currentUser.id));
+        console.log('UserStore - Refreshed user data:', userData);
         
-        // Map API response to frontend User type
+        // Map API response to frontend User type with all fields
         const updatedUser: User = {
           id: userData.maNguoiDung.toString(),
           name: userData.hoTen,
           email: userData.email,
+          phone: userData.sdt || '',
+          bio: userData.tieuSu || '',
+          gender: userData.gioiTinh || 0,
+          birthDate: userData.ngaySinh || '',
+          avatar: userData.avt || '',
           isAdmin: userData.vaiTro === 1,
           addresses: currentUser.addresses // Keep existing addresses
         };
@@ -236,27 +242,33 @@ export const useUserStore = create<UserState>()(
       try {
         set({ isLoading: true });
         
-        // Convert frontend format to backend format
+        // Convert frontend format to backend format (PascalCase for C# backend)
         const updateData = {
-          maNguoiDung: parseInt(currentUser.id),
-          hoTen: updates.name,
-          email: updates.email,
-          sdt: updates.phone,
-          vaiTro: updates.isAdmin ? 1 : 2,
-          trangThai: 1,
-          tieuSu: updates.bio || '',
-          gioiTinh: updates.gender || 0,
-          ngaySinh: updates.birthDate
+          MaNguoiDung: parseInt(currentUser.id),
+          HoTen: updates.name,
+          Email: updates.email,
+          Sdt: updates.phone || '',
+          VaiTro: currentUser.isAdmin ? 1 : 0, // 1: Admin, 0: User
+          TrangThai: 1,
+          TieuSu: updates.bio || '',
+          GioiTinh: updates.gender || 0,
+          NgaySinh: updates.birthDate || null
         };
 
+        console.log('UserStore - Sending update data:', updateData);
         const result = await AuthService.updateUserProfile(parseInt(currentUser.id), updateData);
+        console.log('UserStore - Update result:', result);
         
-        // Update local user data
+        // Update local user data with all fields
         const updatedUser: User = {
           ...currentUser,
-          name: result.hoTen,
-          email: result.email,
-          // Note: phone, bio, gender, birthDate would need to be added to User type
+          name: result.hoTen || currentUser.name,
+          email: result.email || currentUser.email,
+          phone: result.sdt || currentUser.phone,
+          bio: result.tieuSu || currentUser.bio,
+          gender: result.gioiTinh ?? currentUser.gender,
+          birthDate: result.ngaySinh || currentUser.birthDate,
+          avatar: result.avt || currentUser.avatar
         };
 
         set({ user: updatedUser, isLoading: false });

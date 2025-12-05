@@ -245,13 +245,49 @@ export class AuthService {
   }
 
   // Update user profile information
+  // Backend expects [FromForm] so we need to send FormData
   static async updateUserProfile(userId: number, updateData: any): Promise<any> {
-    const headers = await this.getAuthHeaders();
-    return this.request<any>(`/NguoiDung/${userId}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(updateData)
+    const token = await this.getStoredToken();
+    const url = `${this.getApiUrl()}/NguoiDung/${userId}`;
+    
+    console.log('AuthService - Updating profile with FormData:', updateData);
+    
+    // Create FormData for [FromForm] binding
+    const formData = new FormData();
+    
+    // Append all fields to FormData
+    Object.keys(updateData).forEach(key => {
+      const value = updateData[key];
+      if (value !== null && value !== undefined && value !== '') {
+        formData.append(key, value.toString());
+      }
     });
+    
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Don't set Content-Type for FormData - browser will set it with boundary
+        },
+        body: formData
+      });
+      
+      console.log('AuthService - Update response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('AuthService - Update error:', errorText);
+        throw new Error(errorText || 'Cập nhật thất bại');
+      }
+      
+      const result = await response.json();
+      console.log('AuthService - Update result:', result);
+      return result;
+    } catch (error) {
+      console.error('AuthService - Update profile failed:', error);
+      throw error;
+    }
   }
 
   // Delete user account (Admin only)

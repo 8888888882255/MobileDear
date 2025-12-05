@@ -53,10 +53,10 @@ export default function EditProfileScreen() {
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        phone: '', // Will be loaded from API if available
-        bio: '', // Will be loaded from API if available
-        gender: 0, // Will be loaded from API if available
-        birthDate: '' // Will be loaded from API if available
+        phone: user.phone || '',
+        bio: user.bio || '',
+        gender: user.gender || 0,
+        birthDate: user.birthDate || ''
       });
     }
   }, [user]);
@@ -114,6 +114,7 @@ export default function EditProfileScreen() {
       if (success) {
         if (Platform.OS === 'web') {
           window.alert('Cập nhật thông tin thành công!');
+          router.replace('/(tabs)/profile');
         } else {
           Alert.alert(
             'Thành công',
