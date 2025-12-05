@@ -44,11 +44,14 @@ export default function CreateSettingScreen() {
       const result = await SettingsService.create(formData);
       Alert.alert('Thành công', 'Đã tạo thành công!', [
         {
-          text: 'Thêm ảnh',
+          text: 'Về danh sách',
+          onPress: () => router.back(),
+        },
+        {
+          text: 'Thêm ảnh ngay',
           onPress: () =>
             router.replace(`/admin/settings/edit?id=${result.maGiaoDien}`),
         },
-        { text: 'Quay lại', onPress: () => router.back() },
       ]);
     } catch (error) {
       Alert.alert('Lỗi', 'Không thể tạo mới. Vui lòng thử lại.');

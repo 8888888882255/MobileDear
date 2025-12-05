@@ -12,7 +12,7 @@ import {
   RefreshControl,
   ScrollView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Plus,
   Edit2,
@@ -139,9 +139,11 @@ export default function AdminSettingsScreen() {
     setIsRefreshing(false);
   };
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const handleDelete = (item: GiaoDien) => {
     Alert.alert(
@@ -320,87 +322,94 @@ export default function AdminSettingsScreen() {
     const isSelected = selectedIds.has(item.maGiaoDien);
 
     return (
-      <TouchableOpacity
-        style={[styles.card, isSelected && styles.cardSelected]}
-        onLongPress={() => handleLongPress(item.maGiaoDien)}
-        onPress={() => {
-          if (isSelectionMode) {
-            toggleSelection(item.maGiaoDien);
-          } else {
-            handleEdit(item);
-          }
-        }}
-        activeOpacity={0.7}
-      >
-        {isSelectionMode && (
-          <View style={styles.selectionOverlay}>
-            {isSelected ? (
-              <CheckSquare size={24} color={colors.primary} />
-            ) : (
-              <Square size={24} color={colors.textLight} />
-            )}
-          </View>
-        )}
-        
-        <View style={styles.cardImageContainer}>
-          {imageUrl ? (
-            <Image source={{ uri: imageUrl }} style={styles.cardImage} />
-          ) : (
-            <View style={styles.noImage}>
-              <ImageIcon size={32} color={colors.textLight} />
+      <View style={[styles.card, isSelected && styles.cardSelected]}>
+        <TouchableOpacity
+          style={{ flex: 1, flexDirection: 'row' }}
+          onLongPress={() => handleLongPress(item.maGiaoDien)}
+          onPress={() => {
+            if (isSelectionMode) {
+              toggleSelection(item.maGiaoDien);
+            } else {
+              handleEdit(item);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          {isSelectionMode && (
+            <View style={styles.selectionOverlay}>
+              {isSelected ? (
+                <CheckSquare size={24} color={colors.primary} />
+              ) : (
+                <Square size={24} color={colors.textLight} />
+              )}
             </View>
           )}
-        </View>
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {item.tenGiaoDien}
-          </Text>
-          <Text style={styles.cardDescription} numberOfLines={2}>
-            {item.moTa || 'Không có mô tả'}
-          </Text>
-          <View style={styles.cardMeta}>
-            {!isSelectionMode && (
-              <View style={styles.switchContainer}>
-                <TouchableOpacity onPress={() => handleToggleStatus(item)}>
-                  <View pointerEvents="none">
-                    <Switch
-                      value={item.trangThai === 1}
-                      onValueChange={() => {}}
-                      trackColor={{ false: colors.border, true: colors.primary }}
-                      thumbColor="#fff"
-                      style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-                    />
-                  </View>
-                </TouchableOpacity>
+          
+          <View style={styles.cardImageContainer}>
+            {imageUrl ? (
+              <Image source={{ uri: imageUrl }} style={styles.cardImage} />
+            ) : (
+              <View style={styles.noImage}>
+                <ImageIcon size={32} color={colors.textLight} />
+              </View>
+            )}
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {item.tenGiaoDien}
+            </Text>
+            <Text style={styles.cardDescription} numberOfLines={2}>
+              {item.moTa || 'Không có mô tả'}
+            </Text>
+            <View style={styles.cardMeta}>
+              {!isSelectionMode && (
+                <View style={styles.switchContainer}>
+                  <TouchableOpacity onPress={() => handleToggleStatus(item)}>
+                    <View pointerEvents="none">
+                      <Switch
+                        value={item.trangThai === 1}
+                        onValueChange={() => {}}
+                        trackColor={{ false: colors.border, true: colors.primary }}
+                        thumbColor="#fff"
+                        style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                  <Text style={[
+                    styles.statusText, 
+                    { color: item.trangThai === 1 ? colors.success : colors.textLight }
+                  ]}>
+                    {item.trangThai === 1 ? 'Hoạt động' : 'Ẩn'}
+                  </Text>
+                </View>
+              )}
+              {isSelectionMode && (
                 <Text style={[
                   styles.statusText, 
                   { color: item.trangThai === 1 ? colors.success : colors.textLight }
                 ]}>
                   {item.trangThai === 1 ? 'Hoạt động' : 'Ẩn'}
                 </Text>
-              </View>
-            )}
-            {isSelectionMode && (
-              <Text style={[
-                styles.statusText, 
-                { color: item.trangThai === 1 ? colors.success : colors.textLight }
-              ]}>
-                {item.trangThai === 1 ? 'Hoạt động' : 'Ẩn'}
-              </Text>
-            )}
+              )}
+            </View>
           </View>
-        </View>
+        </TouchableOpacity>
+
         {!isSelectionMode && (
           <View style={styles.cardActions}>
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton]}
-              onPress={() => handleDelete(item)}
+              onPress={() => {
+                console.log('Delete button pressed', item.maGiaoDien);
+                handleDelete(item);
+              }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Trash2 size={18} color="#dc2626" />
             </TouchableOpacity>
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
