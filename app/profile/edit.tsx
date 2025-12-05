@@ -9,13 +9,17 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Save, User, Mail, Phone, Calendar, FileText } from 'lucide-react-native';
+import { ArrowLeft, Save, User, Mail, Phone, Calendar, FileText, Camera } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
+import { AuthService } from '@/src/services/authService';
 import colors from '@/constants/colors';
+import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 
 interface EditProfileData {
   name: string;
@@ -47,6 +51,16 @@ export default function EditProfileScreen() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Avatar state
+  type SelectedAvatar = {
+    uri: string;
+    name: string;
+    type: string;
+    file?: File; // Only for web
+  };
+  const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatar | null>(null);
+  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
 
   useEffect(() => {
     if (user) {
@@ -104,31 +118,123 @@ export default function EditProfileScreen() {
     return isValid;
   };
 
+  // Pick avatar image
+  const pickAvatar = async () => {
+    if (Platform.OS === 'web') {
+      // Web: use file input
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+
+      input.onchange = (e: any) => {
+        const file: File = e.target.files?.[0];
+        if (!file) return;
+
+        setSelectedAvatar({
+          uri: URL.createObjectURL(file),
+          name: file.name,
+          type: file.type || 'image/jpeg',
+          file,
+        });
+      };
+
+      input.click();
+      return;
+    }
+
+    // Mobile & Desktop
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Cần quyền', 'Vui lòng cấp quyền truy cập thư viện ảnh');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      const fileName = asset.uri.split('/').pop() || `avatar_${Date.now()}.jpg`;
+      setSelectedAvatar({
+        uri: asset.uri,
+        name: fileName,
+        type: 'image/jpeg',
+      });
+    }
+  };
+
   const handleSave = async () => {
     if (!validateForm()) return;
 
     setIsSaving(true);
     try {
-      const success = await updateUserProfile(formData);
-      
-      if (success) {
-        if (Platform.OS === 'web') {
-          window.alert('Cập nhật thông tin thành công!');
-          router.replace('/(tabs)/profile');
+      // If avatar is selected, upload with FormData directly
+      if (selectedAvatar) {
+        const token = await AuthService.getStoredToken();
+        const formDataToSend = new FormData();
+        
+        // Add profile data
+        formDataToSend.append('MaNguoiDung', user!.id);
+        formDataToSend.append('HoTen', formData.name);
+        formDataToSend.append('Email', formData.email);
+        formDataToSend.append('Sdt', formData.phone || '');
+        formDataToSend.append('VaiTro', user!.isAdmin ? '1' : '0');
+        formDataToSend.append('TrangThai', '1');
+        formDataToSend.append('TieuSu', formData.bio || '');
+        formDataToSend.append('GioiTinh', (formData.gender || 0).toString());
+        if (formData.birthDate) formDataToSend.append('NgaySinh', formData.birthDate);
+        
+        // Add avatar image
+        if (Platform.OS === 'web' && selectedAvatar.file) {
+          formDataToSend.append('imageFile', selectedAvatar.file, selectedAvatar.name);
         } else {
-          Alert.alert(
-            'Thành công',
-            'Thông tin của bạn đã được cập nhật thành công!',
-            [
-              {
-                text: 'OK',
-                onPress: () => router.replace('/(tabs)/profile')
-              }
-            ]
-          );
+          formDataToSend.append('imageFile', {
+            uri: selectedAvatar.uri,
+            name: selectedAvatar.name,
+            type: selectedAvatar.type,
+          } as any);
         }
+        
+        const response = await fetch(`${API_URL}/api/NguoiDung/${user!.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+          body: formDataToSend,
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(errorText || 'Cập nhật thất bại');
+        }
+        
+        // Refresh user profile to get new avatar
+        const { refreshUserProfile } = useUserStore.getState();
+        await refreshUserProfile();
       } else {
-        throw new Error('Cập nhật thất bại');
+        // No avatar, use normal update
+        const success = await updateUserProfile(formData);
+        if (!success) throw new Error('Cập nhật thất bại');
+      }
+      
+      if (Platform.OS === 'web') {
+        window.alert('Cập nhật thông tin thành công!');
+        router.replace('/(tabs)/profile');
+      } else {
+        Alert.alert(
+          'Thành công',
+          'Thông tin của bạn đã được cập nhật thành công!',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/(tabs)/profile')
+            }
+          ]
+        );
       }
     } catch (error: any) {
       console.error('Profile update error:', error);
@@ -190,6 +296,25 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.form}>
+            {/* Avatar Section */}
+            <View style={styles.avatarSection}>
+              <TouchableOpacity style={styles.avatarContainer} onPress={pickAvatar}>
+                {selectedAvatar ? (
+                  <Image source={{ uri: selectedAvatar.uri }} style={styles.avatar} />
+                ) : user.avatar ? (
+                  <Image source={{ uri: user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}` }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <User size={50} color={colors.textLight} />
+                  </View>
+                )}
+                <View style={styles.cameraOverlay}>
+                  <Camera size={20} color="#fff" />
+                </View>
+              </TouchableOpacity>
+              <Text style={styles.avatarHint}>Nhấn để thay đổi ảnh đại diện</Text>
+            </View>
+
             <Input
               label="Họ và tên"
               placeholder="Nhập họ và tên của bạn"
@@ -336,4 +461,52 @@ const styles = StyleSheet.create({
     fontWeight: '500' 
   },
   saveButton: { marginTop: 8 },
+  // Avatar styles
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 3,
+    borderColor: colors.primary,
+  },
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: colors.card,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  cameraOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.background,
+  },
+  avatarHint: {
+    fontSize: 13,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
 });

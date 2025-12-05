@@ -30,6 +30,9 @@ import { PostCard } from '@/components/PostCard';
 import { useUserStore } from '@/store/user-store';
 import { usePostsStore } from '@/store/posts-store';
 import colors from '@/constants/colors';
+import Constants from 'expo-constants';
+
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -170,7 +173,7 @@ export default function ProfileScreen() {
           <View style={styles.avatarContainer}>
             {user?.avatar ? (
               <Image 
-                source={{ uri: user.avatar }} 
+                source={{ uri: user.avatar.startsWith('http') ? user.avatar : `${API_URL}${user.avatar}` }} 
                 style={styles.avatar} 
               />
             ) : (
