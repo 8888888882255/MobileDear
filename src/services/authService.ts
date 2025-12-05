@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
 import { LoginRequest, LoginResponse } from '@/types';
 
 interface ApiResponse<T = any> {
@@ -17,34 +16,16 @@ interface RequestConfig extends RequestInit {
 
 export class AuthService {
   private static getApiUrl(): string {
-    // Get from app.json config first
+    // Get from app.json config
     const configUrl = Constants.expoConfig?.extra?.apiUrl;
     if (configUrl) {
       // Ensure /api suffix
       return configUrl.endsWith('/api') ? configUrl : `${configUrl}/api`;
     }
     
-    // Auto-detect based on platform for development
-    // Replace YOUR_LOCAL_IP with your actual WiFi IP
-    const LOCAL_IP = '192.168.1.11'; // Thay bằng IP WiFi của bạn
-    const PORT = '5083';
-    
-    if (Platform.OS === 'web') {
-      return `http://localhost:${PORT}/api`;
-    } else if (Platform.OS === 'android') {
-      // Android Emulator uses 10.0.2.2 for localhost
-      // Real device needs actual IP
-      if (__DEV__ && !Constants.isDevice) {
-        return `http://10.0.2.2:${PORT}/api`;
-      }
-      return `http://${LOCAL_IP}:${PORT}/api`;
-    } else {
-      // iOS Simulator can use localhost, real device needs IP
-      if (__DEV__ && !Constants.isDevice) {
-        return `http://localhost:${PORT}/api`;
-      }
-      return `http://${LOCAL_IP}:${PORT}/api`;
-    }
+    // Fallback to localhost if no config
+    console.warn('No apiUrl found in app.json, using localhost:5083');
+    return 'http://localhost:5083/api';
   }
 
   private static async request<T>(
@@ -240,9 +221,12 @@ export class AuthService {
 
   static async removeToken(): Promise<void> {
     try {
+      console.log('AuthService - Removing token from AsyncStorage');
       await AsyncStorage.removeItem('auth_token');
+      console.log('AuthService - Token removed successfully');
     } catch (error) {
       console.error('Failed to remove token:', error);
+      throw error; // Re-throw to let caller know it failed
     }
   }
 

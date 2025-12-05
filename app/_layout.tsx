@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import colors from "@/constants/colors";
+import { useUserStore } from "@/store/user-store";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -17,6 +18,8 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     ...FontAwesome.font,
   });
+  
+  const { checkAuthStatus } = useUserStore();
 
   useEffect(() => {
     if (error) {
@@ -30,6 +33,24 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+  
+  // Check auth status on app start - only once
+  useEffect(() => {
+    let mounted = true;
+    
+    const initAuth = async () => {
+      if (mounted) {
+        console.log('RootLayout - Checking auth status on mount');
+        await checkAuthStatus();
+      }
+    };
+    
+    initAuth();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []); // Empty dependency array - only run once
 
   if (!loaded) {
     return null;

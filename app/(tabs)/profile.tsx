@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Image
+  Image,
+  Platform
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { 
@@ -62,25 +63,70 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Đăng xuất",
-      "Bạn có chắc chắn muốn đăng xuất?",
-      [
-        { text: "Hủy", style: "cancel" },
-        { 
-          text: "Đăng xuất", 
-          style: "destructive", 
-          onPress: async () => {
-            setIsLoggingOut(true);
-            try {
-              await logout();
-            } finally {
-              setIsLoggingOut(false);
-            }
-          } 
-        }
-      ]
-    );
+    console.log('Profile - handleLogout called');
+    
+    if (Platform.OS === 'web') {
+      // Web platform - use window.confirm
+      const confirmed = window.confirm('Bạn có chắc chắn muốn đăng xuất?');
+      if (!confirmed) {
+        console.log('Profile - Logout cancelled by user');
+        return;
+      }
+      
+      console.log('Profile - User confirmed logout on web');
+      setIsLoggingOut(true);
+      
+      logout()
+        .then(() => {
+          console.log('Profile - Logout successful');
+          window.alert('Đã đăng xuất thành công!');
+        })
+        .catch((error) => {
+          console.error('Profile - Logout error:', error);
+          window.alert('Không thể đăng xuất. Vui lòng thử lại.');
+        })
+        .finally(() => {
+          setIsLoggingOut(false);
+        });
+    } else {
+      // Mobile platform - use Alert.alert
+      console.log('Profile - Showing logout confirmation on mobile');
+      Alert.alert(
+        "Đăng xuất",
+        "Bạn có chắc chắn muốn đăng xuất?",
+        [
+          { 
+            text: "Hủy", 
+            style: "cancel",
+            onPress: () => console.log('Profile - Logout cancelled by user')
+          },
+          { 
+            text: "Đăng xuất", 
+            style: "destructive", 
+            onPress: async () => {
+              console.log('Profile - User confirmed logout on mobile');
+              setIsLoggingOut(true);
+              try {
+                await logout();
+                console.log('Profile - Logout successful');
+                
+                // Show success message
+                Alert.alert(
+                  'Thành công',
+                  'Đã đăng xuất thành công!',
+                  [{ text: 'OK' }]
+                );
+              } catch (error) {
+                console.error('Profile - Logout error:', error);
+                Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
+              } finally {
+                setIsLoggingOut(false);
+              }
+            } 
+          }
+        ]
+      );
+    }
   };
   
   const navigateToAdminDashboard = () => {

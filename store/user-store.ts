@@ -57,12 +57,16 @@ export const useUserStore = create<UserState>()(
     },
 
     logout: async () => {
+      console.log('UserStore - Starting logout process');
       try {
         await AuthService.removeToken();
+        console.log('UserStore - Token removed, clearing state');
       } catch (error) {
-        console.error('Failed to remove token:', error);
+        console.error('UserStore - Failed to remove token:', error);
+        // Continue anyway to clear state
       }
       set({ user: null, isAuthenticated: false });
+      console.log('UserStore - Logout complete, state cleared');
     },
 
     updateProfile: (updates) => {
@@ -155,14 +159,47 @@ export const useUserStore = create<UserState>()(
     },
 
     checkAuthStatus: async () => {
+      console.log('UserStore - checkAuthStatus called');
       try {
         const token = await AuthService.getStoredToken();
-        if (token) {
-          // You could verify token validity here by making a test request
-          set({ isAuthenticated: true });
+        console.log('UserStore - Token from storage:', token ? 'EXISTS' : 'NULL');
+        
+        if (!token) {
+          console.log('UserStore - No token found, setting unauthenticated');
+          set({ isAuthenticated: false, user: null });
+          return;
+        }
+        
+        // Verify token by calling API to get user profile
+        try {
+          console.log('UserStore - Verifying token with API');
+          // Decode token to get user ID
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          const userId = payload.sub;
+          
+          // Verify token is still valid by fetching user profile
+          const userData = await AuthService.getUserProfile(userId);
+          console.log('UserStore - Token valid, user data received');
+          
+          const user: User = {
+            id: userData.maNguoiDung.toString(),
+            name: userData.hoTen,
+            email: userData.email,
+            isAdmin: userData.vaiTro === 1,
+            addresses: []
+          };
+          
+          set({ user, isAuthenticated: true });
+          console.log('UserStore - User session restored');
+        } catch (error) {
+          // Token invalid or expired
+          console.log('UserStore - Token invalid or expired, clearing auth state');
+          await AuthService.removeToken();
+          set({ isAuthenticated: false, user: null });
         }
       } catch (error) {
-        console.error('Failed to check auth status:', error);
+        console.error('UserStore - Failed to check auth status:', error);
+        set({ isAuthenticated: false, user: null });
       }
     },
 
