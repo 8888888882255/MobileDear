@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, User, UserPlus } from 'lucide-react-native';
@@ -16,6 +17,8 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { AuthService } from '@/src/services/authService';
 import colors from '@/constants/colors';
+import { SettingsService } from '@/src/services/settingsService';
+import { GiaoDien } from '@/types';
 
 interface RegisterFormData {
   hoTen: string;
@@ -29,6 +32,7 @@ interface RegisterFormData {
 export default function RegisterScreen() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [logo, setLogo] = useState<GiaoDien | null>(null);
 
   const [formData, setFormData] = useState<RegisterFormData>({
     hoTen: '',
@@ -46,6 +50,21 @@ export default function RegisterScreen() {
     matKhau: '',
     xacNhanMatKhau: ''
   });
+
+  useEffect(() => {
+    loadLogo();
+  }, []);
+
+  const loadLogo = async () => {
+    try {
+      const logos = await SettingsService.getActiveLogos();
+      if (logos && logos.length > 0) {
+        setLogo(logos[0]);
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error);
+    }
+  };
 
   const updateField = (field: keyof RegisterFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -177,6 +196,10 @@ export default function RegisterScreen() {
     }
   };
 
+  const getLogoUrl = (path: string) => {
+    return SettingsService.getImageUrl(path);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -185,6 +208,13 @@ export default function RegisterScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
+            {logo && logo.medias && logo.medias.length > 0 ? (
+              <Image
+                source={{ uri: getLogoUrl(logo.medias[0].duongDan) }}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            ) : null}
             <Text style={styles.title}>Tạo tài khoản mới</Text>
             <Text style={styles.subtitle}>Đăng ký để trở thành thành viên của chúng tôi</Text>
           </View>
@@ -273,8 +303,9 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   keyboardAvoidingView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24 },
+  scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   header: { marginBottom: 32, alignItems: 'center' },
+  logo: { width: 120, height: 120, marginBottom: 24, borderRadius: 60 },
   title: { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
   subtitle: { fontSize: 16, color: colors.textLight, textAlign: 'center' },
   form: { marginBottom: 24 },

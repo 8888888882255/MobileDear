@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, LogIn, UserPlus, KeyRound } from 'lucide-react-native';
@@ -16,6 +17,8 @@ import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
+import { SettingsService } from '@/src/services/settingsService';
+import { GiaoDien } from '@/types';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -24,6 +27,22 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
+  const [logo, setLogo] = useState<GiaoDien | null>(null);
+
+  useEffect(() => {
+    loadLogo();
+  }, []);
+
+  const loadLogo = async () => {
+    try {
+      const logos = await SettingsService.getActiveLogos();
+      if (logos && logos.length > 0) {
+        setLogo(logos[0]);
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error);
+    }
+  };
 
   const validateForm = () => {
     let isValid = true;
@@ -76,6 +95,10 @@ export default function LoginScreen() {
     }
   };
 
+  const getLogoUrl = (path: string) => {
+    return SettingsService.getImageUrl(path);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -84,6 +107,13 @@ export default function LoginScreen() {
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
+            {logo && logo.medias && logo.medias.length > 0 ? (
+              <Image
+                source={{ uri: getLogoUrl(logo.medias[0].duongDan) }}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            ) : null}
             <Text style={styles.title}>Chào mừng trở lại</Text>
             <Text style={styles.subtitle}>Đăng nhập vào tài khoản của bạn</Text>
           </View>
@@ -146,8 +176,9 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   keyboardAvoidingView: { flex: 1 },
-  scrollContent: { flexGrow: 1, padding: 24 },
+  scrollContent: { flexGrow: 1, padding: 24, justifyContent: 'center' },
   header: { marginBottom: 32, alignItems: 'center' },
+  logo: { width: 150, height: 150, marginBottom: 24, borderRadius: 75 },
   title: { fontSize: 28, fontWeight: 'bold', color: colors.text, marginBottom: 8 },
   subtitle: { fontSize: 16, color: colors.textLight },
   form: { marginBottom: 24 },

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Mail, ArrowLeft, Send } from "lucide-react-native";
@@ -16,6 +17,8 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { AuthService } from "@/src/services/authService";
 import colors from "@/constants/colors";
+import { SettingsService } from "@/src/services/settingsService";
+import { GiaoDien } from "@/types";
 
 interface ForgotPasswordData {
   email: string;
@@ -26,6 +29,22 @@ export default function ForgotPasswordScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
+  const [logo, setLogo] = useState<GiaoDien | null>(null);
+
+  useEffect(() => {
+    loadLogo();
+  }, []);
+
+  const loadLogo = async () => {
+    try {
+      const logos = await SettingsService.getActiveLogos();
+      if (logos && logos.length > 0) {
+        setLogo(logos[0]);
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error);
+    }
+  };
 
   const validateEmail = (): boolean => {
     let isValid = true;
@@ -93,6 +112,10 @@ export default function ForgotPasswordScreen() {
     }
   };
 
+  const getLogoUrl = (path: string) => {
+    return SettingsService.getImageUrl(path);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -114,6 +137,15 @@ export default function ForgotPasswordScreen() {
           </View>
 
           <View style={styles.content}>
+            <View style={styles.logoContainer}>
+              {logo && logo.medias && logo.medias.length > 0 ? (
+                <Image
+                  source={{ uri: getLogoUrl(logo.medias[0].duongDan) }}
+                  style={styles.logo}
+                  resizeMode="contain"
+                />
+              ) : null}
+            </View>
             <Text style={styles.title}>Quên mật khẩu</Text>
             <Text style={styles.subtitle}>
               Nhập email của bạn và chúng tôi sẽ gửi mã OTP để đặt lại mật khẩu
@@ -180,12 +212,14 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   content: { paddingHorizontal: 24, paddingBottom: 24 },
+  logoContainer: { alignItems: 'center', marginBottom: 16 },
+  logo: { width: 100, height: 100, borderRadius: 50 },
   title: {
     fontSize: 28,
     fontWeight: "bold",
     color: colors.text,
     marginBottom: 8,
-    marginTop: 24,
+    marginTop: 8,
   },
   subtitle: {
     fontSize: 16,
