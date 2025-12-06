@@ -316,4 +316,13 @@ export class AuthService {
       headers
     });
   }
+
+  // Get all users (Admin only)
+  static async getAllUsers(): Promise<any> {
+    const headers = await this.getAuthHeaders();
+    return this.request<any>('/NguoiDung', {
+      method: 'GET',
+      headers
+    });
+  }
 }

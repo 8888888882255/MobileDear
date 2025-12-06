@@ -34,7 +34,9 @@ export interface User {
   bio?: string;
   gender?: number;
   birthDate?: string;
-  isAdmin: boolean;
+  isAdmin?: boolean;
+  status?: 'active' | 'banned';
+  rawData?: any;
   addresses: Address[];
 }
 

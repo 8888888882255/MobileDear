@@ -16,23 +16,62 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
+import { AuthService } from '@/src/services/authService';
+import Constants from 'expo-constants';
 
 export default function EditUserScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user: currentUser } = useUserStore();
 
-  const [name, setName] = useState('John Doe');
-  const [email, setEmail] = useState('john.doe@example.com');
-  const [phone, setPhone] = useState('+1 234 567 8900');
-  const [avatar, setAvatar] = useState('https://i.pravatar.cc/150?img=1');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [avatar, setAvatar] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [originalUser, setOriginalUser] = useState<any>(null);
+
+  React.useEffect(() => {
+    if (!currentUser?.isAdmin) {
+      router.replace('/');
+    }
+  }, [currentUser]);
 
   if (!currentUser?.isAdmin) {
-    router.replace('/');
     return null;
   }
+
+  React.useEffect(() => {
+    fetchUserDetails();
+  }, [id]);
+
+  const fetchUserDetails = async () => {
+    try {
+      setIsLoading(true);
+      const data = await AuthService.getUserProfile(Number(id));
+      setOriginalUser(data);
+      setName(data.hoTen || '');
+      setEmail(data.email || '');
+      setPhone(data.sdt || '');
+      
+      // Handle avatar URL
+      let avatarUrl = data.avt || '';
+      if (avatarUrl && !avatarUrl.startsWith('http') && !avatarUrl.startsWith('data:')) {
+        avatarUrl = `${Constants.expoConfig?.extra?.apiUrl}/${avatarUrl}`;
+      }
+      setAvatar(avatarUrl);
+      
+      setIsAdmin(data.vaiTro === 1);
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+      Alert.alert('Error', 'Failed to load user details');
+      router.back();
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const validateForm = () => {
     if (!name.trim()) {
@@ -56,29 +95,44 @@ export default function EditUserScreen() {
 
     setIsSaving(true);
 
-    const updatedUser = {
-      id,
-      name: name.trim(),
-      email: email.trim(),
-      phone: phone.trim() || undefined,
-      avatar: avatar.trim() || undefined,
-      isAdmin,
-      updatedAt: new Date().toISOString()
-    };
+    try {
+      // Prepare update model matching backend NguoiDungEdit
+      const updateModel = {
+        MaNguoiDung: Number(id),
+        HoTen: name.trim(),
+        Email: email.trim(),
+        Sdt: phone.trim() || null,
+        Avt: avatar.trim() || null,
+        VaiTro: isAdmin ? 1 : 0,
+        // Preserve existing fields that are not in the form but required/important
+        TrangThai: originalUser?.trangThai ?? 1,
+        GioiTinh: originalUser?.gioiTinh ?? 0,
+        NgaySinh: originalUser?.ngaySinh,
+        TieuSu: originalUser?.tieuSu
+      };
 
-    setTimeout(() => {
-      setIsSaving(false);
+      await AuthService.updateUserProfile(Number(id), updateModel);
+
       Alert.alert(
         'Success',
         'User updated successfully!',
         [
           {
             text: 'OK',
-            onPress: () => router.back()
+            onPress: () => {
+              // Navigate back and refresh list (list should auto-refresh if using focus effect or store, 
+              // but here we just go back. Ideally list screen refetches on focus)
+              router.back();
+            }
           }
         ]
       );
-    }, 500);
+    } catch (error: any) {
+      console.error('Error updating user:', error);
+      Alert.alert('Error', error.message || 'Failed to update user');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleChangeAvatar = () => {

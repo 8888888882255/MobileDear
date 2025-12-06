@@ -35,165 +35,10 @@ import { Card } from '@/components/ui/Card';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import { User } from '@/types';
+import { AuthService } from '@/src/services/authService';
+import Constants from 'expo-constants';
 
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 234 567 8900',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    isAdmin: false,
-    addresses: [
-      {
-        id: '1',
-        name: 'Home',
-        street: '123 Main St',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001',
-        country: 'USA',
-        isDefault: true
-      }
-    ]
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    email: 'jane.smith@example.com',
-    phone: '+1 234 567 8901',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    isAdmin: false,
-    addresses: [
-      {
-        id: '2',
-        name: 'Work',
-        street: '456 Business Ave',
-        city: 'Los Angeles',
-        state: 'CA',
-        zipCode: '90001',
-        country: 'USA',
-        isDefault: true
-      }
-    ]
-  },
-  {
-    id: '3',
-    name: 'Robert Johnson',
-    email: 'robert.j@example.com',
-    phone: '+1 234 567 8902',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    isAdmin: true,
-    addresses: [
-      {
-        id: '3',
-        name: 'Home',
-        street: '789 Park Lane',
-        city: 'Chicago',
-        state: 'IL',
-        zipCode: '60601',
-        country: 'USA',
-        isDefault: true
-      }
-    ]
-  },
-  {
-    id: '4',
-    name: 'Emily Davis',
-    email: 'emily.davis@example.com',
-    phone: '+1 234 567 8903',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    isAdmin: false,
-    addresses: [
-      {
-        id: '4',
-        name: 'Home',
-        street: '321 Elm Street',
-        city: 'Houston',
-        state: 'TX',
-        zipCode: '77001',
-        country: 'USA',
-        isDefault: true
-      }
-    ]
-  },
-  {
-    id: '5',
-    name: 'Michael Brown',
-    email: 'michael.b@example.com',
-    phone: '+1 234 567 8904',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    isAdmin: false,
-    addresses: []
-  },
-  {
-    id: '6',
-    name: 'Sarah Wilson',
-    email: 'sarah.w@example.com',
-    phone: '+1 234 567 8905',
-    avatar: 'https://i.pravatar.cc/150?img=6',
-    isAdmin: false,
-    addresses: [
-      {
-        id: '5',
-        name: 'Home',
-        street: '654 Oak Drive',
-        city: 'Phoenix',
-        state: 'AZ',
-        zipCode: '85001',
-        country: 'USA',
-        isDefault: true
-      }
-    ]
-  },
-  {
-    id: '7',
-    name: 'David Martinez',
-    email: 'david.m@example.com',
-    avatar: 'https://i.pravatar.cc/150?img=7',
-    isAdmin: false,
-    addresses: [
-      {
-        id: '6',
-        name: 'Apartment',
-        street: '987 Pine Street',
-        city: 'Philadelphia',
-        state: 'PA',
-        zipCode: '19019',
-        country: 'USA',
-        isDefault: true
-      }
-    ]
-  },
-  {
-    id: '8',
-    name: 'Lisa Anderson',
-    email: 'lisa.a@example.com',
-    phone: '+1 234 567 8907',
-    avatar: 'https://i.pravatar.cc/150?img=8',
-    isAdmin: false,
-    addresses: []
-  }
-];
 
-interface UserStats {
-  totalOrders: number;
-  totalSpent: number;
-  joinedDate: string;
-  lastActive: string;
-  status: 'active' | 'banned';
-}
-
-const userStats: Record<string, UserStats> = {
-  '1': { totalOrders: 12, totalSpent: 1249.99, joinedDate: '2023-01-15', lastActive: '2024-01-10', status: 'active' },
-  '2': { totalOrders: 8, totalSpent: 789.50, joinedDate: '2023-02-20', lastActive: '2024-01-09', status: 'active' },
-  '3': { totalOrders: 5, totalSpent: 456.00, joinedDate: '2022-11-10', lastActive: '2024-01-11', status: 'active' },
-  '4': { totalOrders: 15, totalSpent: 1890.25, joinedDate: '2023-03-05', lastActive: '2024-01-08', status: 'active' },
-  '5': { totalOrders: 3, totalSpent: 234.75, joinedDate: '2023-05-12', lastActive: '2023-12-20', status: 'active' },
-  '6': { totalOrders: 20, totalSpent: 2450.00, joinedDate: '2022-09-18', lastActive: '2024-01-11', status: 'active' },
-  '7': { totalOrders: 7, totalSpent: 567.80, joinedDate: '2023-04-22', lastActive: '2024-01-07', status: 'active' },
-  '8': { totalOrders: 1, totalSpent: 89.99, joinedDate: '2023-12-01', lastActive: '2024-01-05', status: 'banned' },
-};
 
 export default function AdminUsersScreen() {
   const router = useRouter();
@@ -205,26 +50,67 @@ export default function AdminUsersScreen() {
   const [showFilters, setShowFilters] = useState(false);
   const [filterRole, setFilterRole] = useState<'all' | 'admin' | 'user'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'banned'>('all');
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([...mockUsers]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   
+  React.useEffect(() => {
+    if (!user?.isAdmin) {
+      router.replace('/');
+    }
+  }, [user]);
+
   if (!user?.isAdmin) {
-    router.replace('/');
     return null;
   }
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      const data = await AuthService.getAllUsers();
+      // Map backend data to frontend User interface
+      const mappedUsers: User[] = data.map((u: any) => ({
+        id: String(u.maNguoiDung),
+        name: u.hoTen,
+        email: u.email,
+        phone: u.sdt,
+        avatar: u.avt && (u.avt.startsWith('http') || u.avt.startsWith('data:')) 
+          ? u.avt 
+          : u.avt ? `${Constants.expoConfig?.extra?.apiUrl}/${u.avt}` : undefined,
+        isAdmin: u.vaiTro === 1,
+        addresses: [], 
+        status: u.trangThai === 0 ? 'banned' : 'active',
+        rawData: u
+      }));
+      setUsers(mappedUsers);
+      setFilteredUsers(mappedUsers);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      Alert.alert('Error', 'Failed to load users');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchUsers();
+  }, []);
   
   const handleSearch = (text: string) => {
     setSearchQuery(text);
-    applyFilters(text, filterRole, filterStatus);
+    applyFilters(text, filterRole, filterStatus, users);
   };
   
   const applyFilters = (
     query: string, 
     role: typeof filterRole, 
-    status: typeof filterStatus
+    status: typeof filterStatus,
+    sourceUsers: User[]
   ) => {
-    let filtered = [...mockUsers];
+    let filtered = [...sourceUsers];
     
     if (query.trim() !== '') {
       filtered = filtered.filter(
@@ -242,10 +128,9 @@ export default function AdminUsersScreen() {
     }
     
     if (status !== 'all') {
-      filtered = filtered.filter(u => {
-        const stats = userStats[u.id];
-        return stats && stats.status === status;
-      });
+      filtered = filtered.filter(u => 
+        status === 'active' ? (u as any).status !== 'banned' : (u as any).status === 'banned'
+      );
     }
     
     setFilteredUsers(filtered);
@@ -266,12 +151,6 @@ export default function AdminUsersScreen() {
         case 'email':
           comparison = a.email.localeCompare(b.email);
           break;
-        case 'orders':
-          comparison = (userStats[a.id]?.totalOrders || 0) - (userStats[b.id]?.totalOrders || 0);
-          break;
-        case 'spent':
-          comparison = (userStats[a.id]?.totalSpent || 0) - (userStats[b.id]?.totalSpent || 0);
-          break;
         default:
           comparison = 0;
       }
@@ -284,12 +163,12 @@ export default function AdminUsersScreen() {
   
   const handleFilterRole = (role: typeof filterRole) => {
     setFilterRole(role);
-    applyFilters(searchQuery, role, filterStatus);
+    applyFilters(searchQuery, role, filterStatus, users);
   };
   
   const handleFilterStatus = (status: typeof filterStatus) => {
     setFilterStatus(status);
-    applyFilters(searchQuery, filterRole, status);
+    applyFilters(searchQuery, filterRole, status, users);
   };
   
   const handleViewUser = (userData: User) => {
@@ -302,7 +181,7 @@ export default function AdminUsersScreen() {
   };
   
   const handleToggleAdmin = (userId: string) => {
-    const targetUser = filteredUsers.find(u => u.id === userId);
+    const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
     
     Alert.alert(
@@ -312,11 +191,40 @@ export default function AdminUsersScreen() {
         { text: "Cancel", style: "cancel" },
         { 
           text: "Confirm", 
-          onPress: () => {
-            const updated = filteredUsers.map(u => 
+          onPress: async () => {
+            setProcessingId(userId);
+            // Optimistic update
+            const updatedUsers = users.map(u => 
               u.id === userId ? { ...u, isAdmin: !u.isAdmin } : u
             );
-            setFilteredUsers(updated);
+            setUsers(updatedUsers);
+            applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+
+            try {
+              // Construct full update object to avoid validation errors
+              const updateData = {
+                MaNguoiDung: targetUser.rawData.maNguoiDung,
+                HoTen: targetUser.rawData.hoTen,
+                Email: targetUser.rawData.email,
+                Sdt: targetUser.rawData.sdt,
+                Avt: targetUser.rawData.avt,
+                GioiTinh: targetUser.rawData.gioiTinh,
+                NgaySinh: targetUser.rawData.ngaySinh,
+                TieuSu: targetUser.rawData.tieuSu,
+                TrangThai: targetUser.rawData.trangThai,
+                VaiTro: targetUser.isAdmin ? 0 : 1
+              };
+              
+              await AuthService.updateUserProfile(Number(userId), updateData);
+            } catch (error) {
+              // Revert on error
+              console.error('Failed to update role, reverting', error);
+              setUsers(users);
+              applyFilters(searchQuery, filterRole, filterStatus, users);
+              Alert.alert('Error', 'Failed to update user role');
+            } finally {
+              setProcessingId(null);
+            }
           }
         }
       ]
@@ -324,11 +232,10 @@ export default function AdminUsersScreen() {
   };
   
   const handleToggleBan = (userId: string) => {
-    const targetUser = filteredUsers.find(u => u.id === userId);
-    const stats = userStats[userId];
-    if (!targetUser || !stats) return;
+    const targetUser = users.find(u => u.id === userId);
+    if (!targetUser) return;
     
-    const isBanned = stats.status === 'banned';
+    const isBanned = (targetUser as any).status === 'banned';
     
     Alert.alert(
       isBanned ? "Unban User" : "Ban User",
@@ -338,9 +245,40 @@ export default function AdminUsersScreen() {
         { 
           text: "Confirm", 
           style: isBanned ? "default" : "destructive",
-          onPress: () => {
-            userStats[userId].status = isBanned ? 'active' : 'banned';
-            setFilteredUsers([...filteredUsers]);
+          onPress: async () => {
+            setProcessingId(userId);
+            // Optimistic update
+            const updatedUsers = users.map(u => 
+              u.id === userId ? { ...u, status: isBanned ? 'active' : 'banned' } as any : u
+            );
+            setUsers(updatedUsers);
+            applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+
+            try {
+              // Construct full update object to avoid validation errors
+              const updateData = {
+                MaNguoiDung: targetUser.rawData.maNguoiDung,
+                HoTen: targetUser.rawData.hoTen,
+                Email: targetUser.rawData.email,
+                Sdt: targetUser.rawData.sdt,
+                Avt: targetUser.rawData.avt,
+                GioiTinh: targetUser.rawData.gioiTinh,
+                NgaySinh: targetUser.rawData.ngaySinh,
+                TieuSu: targetUser.rawData.tieuSu,
+                VaiTro: targetUser.rawData.vaiTro,
+                TrangThai: isBanned ? 1 : 0
+              };
+
+              await AuthService.updateUserProfile(Number(userId), updateData);
+            } catch (error) {
+              // Revert on error
+              console.error('Failed to update status, reverting', error);
+              setUsers(users);
+              applyFilters(searchQuery, filterRole, filterStatus, users);
+              Alert.alert('Error', 'Failed to update user status');
+            } finally {
+              setProcessingId(null);
+            }
           }
         }
       ]
@@ -348,7 +286,7 @@ export default function AdminUsersScreen() {
   };
   
   const handleDeleteUser = (userId: string) => {
-    const targetUser = filteredUsers.find(u => u.id === userId);
+    const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
     
     Alert.alert(
@@ -359,9 +297,19 @@ export default function AdminUsersScreen() {
         { 
           text: "Delete", 
           style: "destructive", 
-          onPress: () => {
-            const updated = filteredUsers.filter(u => u.id !== userId);
-            setFilteredUsers(updated);
+          onPress: async () => {
+            setProcessingId(userId);
+            try {
+              await AuthService.deleteUser(Number(userId));
+              // Update state locally
+              const updatedUsers = users.filter(u => u.id !== userId);
+              setUsers(updatedUsers);
+              applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete user');
+            } finally {
+              setProcessingId(null);
+            }
           } 
         }
       ]
@@ -369,12 +317,12 @@ export default function AdminUsersScreen() {
   };
   
   const renderUserItem = ({ item }: { item: User }) => {
-    const stats = userStats[item.id];
-    const isBanned = stats?.status === 'banned';
+    const isBanned = (item as any).status === 'banned';
+    const isProcessing = processingId === item.id;
     
     return (
-      <TouchableOpacity onPress={() => handleViewUser(item)}>
-        <Card style={styles.userCard}>
+      <TouchableOpacity onPress={() => handleViewUser(item)} disabled={isProcessing}>
+        <Card style={[styles.userCard, isProcessing && { opacity: 0.7 }]}>
           <View style={styles.userContainer}>
             <View style={styles.avatarContainer}>
               {item.avatar ? (
@@ -417,47 +365,39 @@ export default function AdminUsersScreen() {
                 )}
               </View>
               <Text style={styles.userEmail} numberOfLines={1}>{item.email}</Text>
-              {stats && (
-                <View style={styles.userStats}>
-                  <Text style={styles.userStat}>
-                    {stats.totalOrders} orders
-                  </Text>
-                  <Text style={styles.userStatDivider}>•</Text>
-                  <Text style={styles.userStat}>
-                    ${stats.totalSpent.toFixed(2)}
-                  </Text>
-                </View>
-              )}
             </View>
             
             <View style={styles.actionsContainer}>
               <TouchableOpacity 
                 style={styles.actionButton}
                 onPress={() => handleToggleAdmin(item.id)}
+                disabled={isProcessing}
               >
                 {item.isAdmin ? (
-                  <ShieldOff size={18} color={colors.textLight} />
+                  <ShieldOff size={18} color={isProcessing ? colors.textLight : colors.textLight} />
                 ) : (
-                  <Shield size={18} color={colors.primary} />
+                  <Shield size={18} color={isProcessing ? colors.textLight : colors.primary} />
                 )}
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={styles.actionButton}
                 onPress={() => handleToggleBan(item.id)}
+                disabled={isProcessing}
               >
                 {isBanned ? (
-                  <UserCheck size={18} color={colors.success} />
+                  <UserCheck size={18} color={isProcessing ? colors.textLight : colors.success} />
                 ) : (
-                  <Ban size={18} color={colors.error} />
+                  <Ban size={18} color={isProcessing ? colors.textLight : colors.error} />
                 )}
               </TouchableOpacity>
               
               <TouchableOpacity 
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={() => handleDeleteUser(item.id)}
+                disabled={isProcessing}
               >
-                <Trash2 size={18} color={colors.error} />
+                <Trash2 size={18} color={isProcessing ? colors.textLight : colors.error} />
               </TouchableOpacity>
             </View>
           </View>
@@ -599,33 +539,15 @@ export default function AdminUsersScreen() {
               <TouchableOpacity 
                 style={[
                   styles.sortButton,
-                  sortBy === 'orders' && styles.activeSortButton
+                  sortBy === 'email' && styles.activeSortButton
                 ]}
-                onPress={() => handleSort('orders')}
+                onPress={() => handleSort('email')}
               >
                 <Text style={[
                   styles.sortButtonText,
-                  sortBy === 'orders' && styles.activeSortButtonText
-                ]}>Orders</Text>
-                {sortBy === 'orders' && (
-                  sortOrder === 'asc' ? 
-                  <ChevronUp size={16} color={colors.primary} /> : 
-                  <ChevronDown size={16} color={colors.primary} />
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[
-                  styles.sortButton,
-                  sortBy === 'spent' && styles.activeSortButton
-                ]}
-                onPress={() => handleSort('spent')}
-              >
-                <Text style={[
-                  styles.sortButtonText,
-                  sortBy === 'spent' && styles.activeSortButtonText
-                ]}>Spent</Text>
-                {sortBy === 'spent' && (
+                  sortBy === 'email' && styles.activeSortButtonText
+                ]}>Email</Text>
+                {sortBy === 'email' && (
                   sortOrder === 'asc' ? 
                   <ChevronUp size={16} color={colors.primary} /> : 
                   <ChevronDown size={16} color={colors.primary} />
@@ -643,11 +565,11 @@ export default function AdminUsersScreen() {
         
         <View style={styles.statsInfo}>
           <Text style={styles.statsText}>
-            {mockUsers.filter(u => u.isAdmin).length} admins
+            {users.filter(u => u.isAdmin).length} admins
           </Text>
           <Text style={styles.statsDivider}>•</Text>
           <Text style={styles.statsText}>
-            {Object.values(userStats).filter(s => s.status === 'active').length} active
+            {users.filter(u => (u as any).status === 'active').length} active
           </Text>
         </View>
       </View>
@@ -658,6 +580,8 @@ export default function AdminUsersScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshing={isLoading}
+        onRefresh={fetchUsers}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>No users found</Text>
@@ -715,7 +639,7 @@ export default function AdminUsersScreen() {
                         <Text style={styles.detailsRoleBadgeText}>Admin</Text>
                       </View>
                     )}
-                    {userStats[selectedUser.id]?.status === 'banned' && (
+                    {(selectedUser as any).status === 'banned' && (
                       <View style={[styles.detailsRoleBadge, styles.detailsBannedBadge]}>
                         <Ban size={14} color={colors.error} />
                         <Text style={[styles.detailsRoleBadgeText, styles.detailsBannedBadgeText]}>
@@ -746,53 +670,21 @@ export default function AdminUsersScreen() {
                       </View>
                     </View>
                   )}
-                </View>
-                
-                {userStats[selectedUser.id] && (
-                  <View style={styles.infoSection}>
-                    <Text style={styles.infoSectionTitle}>Activity</Text>
-                    
-                    <View style={styles.infoItem}>
-                      <ShoppingBag size={20} color={colors.textLight} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoLabel}>Total Orders</Text>
-                        <Text style={styles.infoValue}>
-                          {userStats[selectedUser.id].totalOrders}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    <View style={styles.infoItem}>
-                      <ShoppingBag size={20} color={colors.textLight} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoLabel}>Total Spent</Text>
-                        <Text style={styles.infoValue}>
-                          ${userStats[selectedUser.id].totalSpent.toFixed(2)}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    <View style={styles.infoItem}>
-                      <Calendar size={20} color={colors.textLight} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoLabel}>Joined</Text>
-                        <Text style={styles.infoValue}>
-                          {userStats[selectedUser.id].joinedDate}
-                        </Text>
-                      </View>
-                    </View>
-                    
-                    <View style={styles.infoItem}>
-                      <Calendar size={20} color={colors.textLight} />
-                      <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoLabel}>Last Active</Text>
-                        <Text style={styles.infoValue}>
-                          {userStats[selectedUser.id].lastActive}
-                        </Text>
-                      </View>
+
+                  <View style={styles.infoItem}>
+                    <Calendar size={20} color={colors.textLight} />
+                    <View style={styles.infoTextContainer}>
+                      <Text style={styles.infoLabel}>Joined</Text>
+                      <Text style={styles.infoValue}>
+                        {selectedUser.rawData?.ngayTao 
+                          ? new Date(selectedUser.rawData.ngayTao).toLocaleDateString() 
+                          : 'N/A'}
+                      </Text>
                     </View>
                   </View>
-                )}
+                </View>
+                
+
                 
                 {selectedUser.addresses.length > 0 && (
                   <View style={styles.infoSection}>
@@ -846,7 +738,7 @@ export default function AdminUsersScreen() {
                   
                   <Button
                     title={
-                      userStats[selectedUser.id]?.status === 'banned' 
+                      selectedUser.status === 'banned' 
                         ? "Unban User" 
                         : "Ban User"
                     }
@@ -855,7 +747,7 @@ export default function AdminUsersScreen() {
                       handleToggleBan(selectedUser.id);
                     }}
                     variant={
-                      userStats[selectedUser.id]?.status === 'banned' 
+                      selectedUser.status === 'banned' 
                         ? "outline" 
                         : "outline"
                     }
