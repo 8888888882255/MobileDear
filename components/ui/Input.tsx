@@ -47,6 +47,7 @@ export const Input: React.FC<InputProps> = ({
         <TextInput
           style={[
             styles.input,
+            props.multiline && styles.multilineInput,
             leftIcon ? styles.inputWithLeftIcon : null,
             isPassword ? styles.inputWithRightIcon : null,
             style
@@ -115,6 +116,12 @@ const styles = StyleSheet.create({
     right: 12,
     height: '100%',
     justifyContent: 'center',
+  },
+  multilineInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+    paddingBottom: 12,
   },
   inputError: {
     borderColor: colors.error,
