@@ -151,7 +151,7 @@ export default function CommentDetailScreen() {
 
         <Button
           title={comment.trangThai === 1 ? "Ẩn bình luận" : "Hiển thị bình luận"}
-          variant={comment.trangThai === 1 ? "outline" : "default"}
+          variant={comment.trangThai === 1 ? "outline" : "secondary"}
           onPress={handleToggleStatus}
           icon={comment.trangThai === 1 ? <EyeOff size={20} /> : <Eye size={20} />}
           style={{ marginTop: 30 }}

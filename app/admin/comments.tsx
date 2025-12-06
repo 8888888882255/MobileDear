@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
   statusBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20 },
   activeBtn: { backgroundColor: '#ecfdf5' },
   inactiveBtn: { backgroundColor: '#fee2e2' },
+  statusText: { fontSize: 12 },
   activeText: { color: '#10b981', fontWeight: '600' },
   inactiveText: { color: '#ef4444', fontWeight: '600' },
   detailText: { color: colors.primary, fontWeight: '600' },

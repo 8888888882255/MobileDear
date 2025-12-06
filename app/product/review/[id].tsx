@@ -98,7 +98,7 @@ export default function ProductReviewScreen() {
     formData.append('NoiDung', review.trim());
     formData.append('DanhGia', rating.toString());
     formData.append('TrangThai', '1');
-    formData.append('MaNguoiDung', user.maNguoiDung.toString());
+    formData.append('MaNguoiDung', (user.rawData?.maNguoiDung || user.id).toString());
     formData.append('MaSanPham', productId);
 
     // Nhiều ảnh → field tên là "Images"

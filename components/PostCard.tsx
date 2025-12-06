@@ -66,7 +66,7 @@ export function PostCard({ post }: PostCardProps) {
   };
 
   const handleUserPress = () => {
-    router.push(`/posts/user/${post.userId}`);
+    router.push(`/posts/user/${post.userId}` as any);
   };
 
   const handleDelete = () => {
@@ -171,7 +171,7 @@ export function PostCard({ post }: PostCardProps) {
         <View style={styles.commentsSection}>
           {post.comments.map((comment) => (
             <View key={comment.id} style={styles.comment}>
-              <TouchableOpacity onPress={() => router.push(`/posts/user/${comment.userId}`)}>
+              <TouchableOpacity onPress={() => router.push(`/posts/user/${comment.userId}` as any)}>
                 {comment.userAvatar ? (
                   <Image source={{ uri: comment.userAvatar }} style={styles.commentAvatar} />
                 ) : (

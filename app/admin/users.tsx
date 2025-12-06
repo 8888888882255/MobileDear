@@ -322,7 +322,7 @@ export default function AdminUsersScreen() {
     
     return (
       <TouchableOpacity onPress={() => handleViewUser(item)} disabled={isProcessing}>
-        <Card style={[styles.userCard, isProcessing && { opacity: 0.7 }]}>
+        <Card style={isProcessing ? [styles.userCard, { opacity: 0.7 }] : styles.userCard}>
           <View style={styles.userContainer}>
             <View style={styles.avatarContainer}>
               {item.avatar ? (
@@ -609,111 +609,111 @@ export default function AdminUsersScreen() {
             </View>
             
             {selectedUser && (
-              <ScrollView 
-                style={styles.modalScroll}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.detailsSection}>
-                  <View style={styles.detailsAvatarContainer}>
-                    {selectedUser.avatar ? (
-                      <Image 
-                        source={{ uri: selectedUser.avatar }} 
-                        style={styles.detailsAvatar} 
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <View style={styles.detailsAvatarPlaceholder}>
-                        <Text style={styles.detailsAvatarText}>
-                          {selectedUser.name.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  
-                  <Text style={styles.detailsName}>{selectedUser.name}</Text>
-                  
-                  <View style={styles.detailsBadges}>
-                    {selectedUser.isAdmin && (
-                      <View style={styles.detailsRoleBadge}>
-                        <Shield size={14} color={colors.primary} />
-                        <Text style={styles.detailsRoleBadgeText}>Admin</Text>
-                      </View>
-                    )}
-                    {(selectedUser as any).status === 'banned' && (
-                      <View style={[styles.detailsRoleBadge, styles.detailsBannedBadge]}>
-                        <Ban size={14} color={colors.error} />
-                        <Text style={[styles.detailsRoleBadgeText, styles.detailsBannedBadgeText]}>
-                          Banned
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
-                
-                <View style={styles.infoSection}>
-                  <Text style={styles.infoSectionTitle}>Contact Information</Text>
-                  
-                  <View style={styles.infoItem}>
-                    <Mail size={20} color={colors.textLight} />
-                    <View style={styles.infoTextContainer}>
-                      <Text style={styles.infoLabel}>Email</Text>
-                      <Text style={styles.infoValue}>{selectedUser.email}</Text>
+              <View style={{ flex: 1 }}>
+                <ScrollView 
+                  style={styles.modalScroll}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <View style={styles.detailsSection}>
+                    <View style={styles.detailsAvatarContainer}>
+                      {selectedUser.avatar ? (
+                        <Image 
+                          source={{ uri: selectedUser.avatar }} 
+                          style={styles.detailsAvatar} 
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View style={styles.detailsAvatarPlaceholder}>
+                          <Text style={styles.detailsAvatarText}>
+                            {selectedUser.name.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    
+                    <Text style={styles.detailsName}>{selectedUser.name}</Text>
+                    
+                    <View style={styles.detailsBadges}>
+                      {selectedUser.isAdmin && (
+                        <View style={styles.detailsRoleBadge}>
+                          <Shield size={14} color={colors.primary} />
+                          <Text style={styles.detailsRoleBadgeText}>Admin</Text>
+                        </View>
+                      )}
+                      {(selectedUser as any).status === 'banned' && (
+                        <View style={[styles.detailsRoleBadge, styles.detailsBannedBadge]}>
+                          <Ban size={14} color={colors.error} />
+                          <Text style={[styles.detailsRoleBadgeText, styles.detailsBannedBadgeText]}>
+                            Banned
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                   
-                  {selectedUser.phone && (
+                  <View style={styles.infoSection}>
+                    <Text style={styles.infoSectionTitle}>Contact Information</Text>
+                    
                     <View style={styles.infoItem}>
-                      <Phone size={20} color={colors.textLight} />
+                      <Mail size={20} color={colors.textLight} />
                       <View style={styles.infoTextContainer}>
-                        <Text style={styles.infoLabel}>Phone</Text>
-                        <Text style={styles.infoValue}>{selectedUser.phone}</Text>
+                        <Text style={styles.infoLabel}>Email</Text>
+                        <Text style={styles.infoValue}>{selectedUser.email}</Text>
                       </View>
+                    </View>
+                    
+                    {selectedUser.phone && (
+                      <View style={styles.infoItem}>
+                        <Phone size={20} color={colors.textLight} />
+                        <View style={styles.infoTextContainer}>
+                          <Text style={styles.infoLabel}>Phone</Text>
+                          <Text style={styles.infoValue}>{selectedUser.phone}</Text>
+                        </View>
+                      </View>
+                    )}
+  
+                    <View style={styles.infoItem}>
+                      <Calendar size={20} color={colors.textLight} />
+                      <View style={styles.infoTextContainer}>
+                        <Text style={styles.infoLabel}>Joined</Text>
+                        <Text style={styles.infoValue}>
+                          {selectedUser.rawData?.ngayTao 
+                            ? new Date(selectedUser.rawData.ngayTao).toLocaleDateString() 
+                            : 'N/A'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  
+                  {selectedUser.addresses.length > 0 && (
+                    <View style={styles.infoSection}>
+                      <Text style={styles.infoSectionTitle}>Addresses</Text>
+                      
+                      {selectedUser.addresses.map((address) => (
+                        <View key={address.id} style={styles.addressCard}>
+                          <View style={styles.addressHeader}>
+                            <MapPin size={18} color={colors.primary} />
+                            <Text style={styles.addressName}>{address.name}</Text>
+                            {address.isDefault && (
+                              <View style={styles.defaultBadge}>
+                                <Text style={styles.defaultBadgeText}>Default</Text>
+                              </View>
+                            )}
+                          </View>
+                          <Text style={styles.addressText}>
+                            {address.street}
+                          </Text>
+                          <Text style={styles.addressText}>
+                            {address.city}, {address.state} {address.zipCode}
+                          </Text>
+                          <Text style={styles.addressText}>
+                            {address.country}
+                          </Text>
+                        </View>
+                      ))}
                     </View>
                   )}
-
-                  <View style={styles.infoItem}>
-                    <Calendar size={20} color={colors.textLight} />
-                    <View style={styles.infoTextContainer}>
-                      <Text style={styles.infoLabel}>Joined</Text>
-                      <Text style={styles.infoValue}>
-                        {selectedUser.rawData?.ngayTao 
-                          ? new Date(selectedUser.rawData.ngayTao).toLocaleDateString() 
-                          : 'N/A'}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
-                
-
-                
-                {selectedUser.addresses.length > 0 && (
-                  <View style={styles.infoSection}>
-                    <Text style={styles.infoSectionTitle}>Addresses</Text>
-                    
-                    {selectedUser.addresses.map((address) => (
-                      <View key={address.id} style={styles.addressCard}>
-                        <View style={styles.addressHeader}>
-                          <MapPin size={18} color={colors.primary} />
-                          <Text style={styles.addressName}>{address.name}</Text>
-                          {address.isDefault && (
-                            <View style={styles.defaultBadge}>
-                              <Text style={styles.defaultBadgeText}>Default</Text>
-                            </View>
-                          )}
-                        </View>
-                        <Text style={styles.addressText}>
-                          {address.street}
-                        </Text>
-                        <Text style={styles.addressText}>
-                          {address.city}, {address.state} {address.zipCode}
-                        </Text>
-                        <Text style={styles.addressText}>
-                          {address.country}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
+                </ScrollView>
                 
                 <View style={styles.modalActions}>
                   <Button
@@ -754,7 +754,7 @@ export default function AdminUsersScreen() {
                     style={styles.modalActionButton}
                   />
                 </View>
-              </ScrollView>
+              </View>
             )}
           </View>
         </View>
@@ -1178,6 +1178,9 @@ const styles = StyleSheet.create({
   },
   modalActions: {
     padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.card, // Ensure background is opaque
   },
   modalActionButton: {
     marginBottom: 12,

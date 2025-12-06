@@ -193,7 +193,7 @@ export default function WishlistScreen() {
 
       <FlatList
         data={products}
-        renderItem={({ item }) => <ProductCard product={item} />}
+        renderItem={({ item }) => <ProductCard product={item as any} />}
         keyExtractor={(item) => item.id}
         numColumns={2}
         columnWrapperStyle={styles.gridRow}

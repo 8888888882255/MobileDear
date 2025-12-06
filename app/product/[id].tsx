@@ -39,6 +39,7 @@ interface Review {
   noiDung?: string;
   danhGia?: number;
   ngayTao: string;
+  trangThai: number;
   hoTen?: string;
   avt?: string;
   medias: { duongDan: string }[];
