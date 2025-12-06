@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, LogIn, UserPlus, KeyRound } from 'lucide-react-native';
+import { Mail, Lock, LogIn, UserPlus, KeyRound, Smartphone, Download } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
@@ -99,6 +99,48 @@ export default function LoginScreen() {
     return SettingsService.getImageUrl(path);
   };
 
+  const openAppStore = () => {
+    const appStoreUrl = Platform.OS === 'ios'
+      ? 'https://apps.apple.com/app/your-app-id' // Replace with actual App Store URL
+      : 'https://play.google.com/store/apps/details?id=com.yourcompany.yourapp'; // Replace with actual Play Store URL
+
+    if (Platform.OS === 'web') {
+      window.open(appStoreUrl, '_blank');
+    } else {
+      // For React Native, you might need to use Linking
+      // Linking.openURL(appStoreUrl);
+      Alert.alert('Thông báo', `Mở ${Platform.OS === 'ios' ? 'App Store' : 'Google Play'} để tải app`);
+    }
+  };
+
+  const AppStoreBanner = () => {
+    if (Platform.OS === 'web') {
+      return (
+        <View style={styles.appStoreContainer}>
+          <TouchableOpacity style={styles.appStoreBanner} onPress={openAppStore}>
+            <Smartphone size={24} color={colors.primary} />
+            <View style={styles.appStoreContent}>
+              <Text style={styles.appStoreTitle}>Tải app để trải nghiệm tốt hơn</Text>
+              <Text style={styles.appStoreSubtitle}>Nhận thông báo, đồng bộ dữ liệu và nhiều tính năng hơn</Text>
+            </View>
+            <View style={styles.appStoreButton}>
+              <Download size={16} color="#fff" />
+              <Text style={styles.appStoreButtonText}>Tải ngay</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    // For native apps, show a different message or hide
+    return (
+      <View style={styles.nativeAppBanner}>
+        <Smartphone size={20} color={colors.primary} />
+        <Text style={styles.nativeAppText}>Bạn đang sử dụng phiên bản di động</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -167,6 +209,8 @@ export default function LoginScreen() {
               </TouchableOpacity>
             </View>
           </View>
+
+          <AppStoreBanner />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -190,6 +234,39 @@ const styles = StyleSheet.create({
   registerText: { color: colors.textLight, fontSize: 14 },
   registerLinkContainer: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   registerLink: { color: colors.primary, fontSize: 14, fontWeight: '500', marginLeft: 4 },
+  appStoreContainer: { marginTop: 32 },
+  appStoreBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary + '10',
+    borderWidth: 1,
+    borderColor: colors.primary + '30',
+    borderRadius: 12,
+    padding: 16,
+  },
+  appStoreContent: { flex: 1, marginLeft: 12 },
+  appStoreTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
+  appStoreSubtitle: { fontSize: 14, color: colors.textLight },
+  appStoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
+  },
+  appStoreButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  nativeAppBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    padding: 12,
+    marginTop: 32,
+  },
+  nativeAppText: { fontSize: 14, color: colors.textLight, marginLeft: 8 },
   demoCredentials: {
     marginTop: 40, padding: 16, backgroundColor: colors.card, borderRadius: 8,
     borderLeftWidth: 4, borderLeftColor: colors.primary,
