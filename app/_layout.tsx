@@ -93,13 +93,13 @@ function RootLayoutNav() {
           title: "Đánh giá sản phẩm",
         }}
       />
-      <Stack.Screen
+      {/* <Stack.Screen
         name="category/[id]"
         options={{
           title: "Category",
           headerBackTitle: "Back",
         }}
-      />
+      /> */}
       <Stack.Screen
         name="auth/login"
         options={{

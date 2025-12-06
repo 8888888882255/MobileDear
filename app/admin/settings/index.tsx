@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   RefreshControl,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
@@ -365,7 +366,10 @@ export default function AdminSettingsScreen() {
               {!isSelectionMode && (
                 <View style={styles.switchContainer}>
                   <TouchableOpacity onPress={() => handleToggleStatus(item)}>
-                    <View pointerEvents="none">
+                    <View 
+                      style={Platform.OS === 'web' ? { pointerEvents: 'none' } as any : undefined}
+                      pointerEvents={Platform.OS === 'web' ? undefined : 'none'}
+                    >
                       <Switch
                         value={item.trangThai === 1}
                         onValueChange={() => {}}
