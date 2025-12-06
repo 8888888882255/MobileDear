@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Image,
+  Platform,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
@@ -114,6 +116,7 @@ export default function HomeScreen() {
   const [hotSaleProducts, setHotSaleProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [banners, setBanners] = useState<Banner[]>(mockBanners);
+  const [promoBanner, setPromoBanner] = useState<Banner | null>(null);
   const [isLoadingNewest, setIsLoadingNewest] = useState(false);
   const [isLoadingHotSale, setIsLoadingHotSale] = useState(false);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
@@ -162,6 +165,25 @@ export default function HomeScreen() {
       setBanners(mockBanners); // Fallback to mock data
     } finally {
       setIsLoadingBanners(false);
+    }
+  }, []);
+
+  // Load active promo banner
+  const loadPromoBanner = useCallback(async () => {
+    try {
+      console.log('🖼️ Loading promo banner...');
+      const activeBanners = await SettingsService.getActiveBanners();
+      
+      if (activeBanners.length > 0) {
+        // Take the first active banner
+        const banner = mapGiaoDienToBanner(activeBanners[0]);
+        setPromoBanner(banner);
+        console.log('✅ Promo banner loaded:', banner?.title);
+      } else {
+        setPromoBanner(null);
+      }
+    } catch (error) {
+      console.error('❌ Error loading promo banner:', error);
     }
   }, []);
 
@@ -243,19 +265,21 @@ export default function HomeScreen() {
   // Load products on mount
   useEffect(() => {
     loadBanners();
+    loadPromoBanner();
     loadCategories();
     loadNewestProducts();
     loadHotSaleProducts();
-  }, [loadBanners, loadCategories, loadNewestProducts, loadHotSaleProducts]);
+  }, [loadBanners, loadPromoBanner, loadCategories, loadNewestProducts, loadHotSaleProducts]);
 
   // Refresh products when screen is focused
   useFocusEffect(
     useCallback(() => {
       loadBanners();
+      loadPromoBanner();
       loadCategories();
       loadNewestProducts();
       loadHotSaleProducts();
-    }, [loadBanners, loadCategories, loadNewestProducts, loadHotSaleProducts])
+    }, [loadBanners, loadPromoBanner, loadCategories, loadNewestProducts, loadHotSaleProducts])
   );
 
   const navigateToAllProducts = () => {
@@ -301,6 +325,26 @@ export default function HomeScreen() {
             ))}
           </ScrollView>
         </View>
+
+        {/* Active Promo Banner */}
+        {promoBanner && (
+          <View style={styles.promoBannerContainer}>
+            <TouchableOpacity 
+              activeOpacity={0.9}
+              onPress={() => {
+                if (promoBanner.link) {
+                  router.push(promoBanner.link as any);
+                }
+              }}
+            >
+              <Image 
+                source={{ uri: promoBanner.image }} 
+                style={styles.promoBannerImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
+          </View>
+        )}
 
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
@@ -432,5 +476,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textLight,
     fontStyle: 'italic',
+  },
+  promoBannerContainer: {
+    marginBottom: 24,
+  },
+  promoBannerImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 8,
   },
 });
