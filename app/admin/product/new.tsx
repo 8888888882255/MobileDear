@@ -23,7 +23,7 @@ import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
 // Kiểu ảnh hỗ trợ tất cả nền tảng
 type SelectedImage = {

@@ -148,16 +148,7 @@ export default function ProductReviewScreen() {
 
       <SafeAreaView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
-          {/* Thông tin sản phẩm */}
-          <View style={styles.productContainer}>
-            <View style={styles.productImagePlaceholder}>
-              <Text style={styles.placeholderText}>SP</Text>
-            </View>
-            <View style={styles.productInfo}>
-              <Text style={styles.productName}>Sản phẩm ID: {productId}</Text>
-              <Text style={styles.productCategory}>Đang viết đánh giá</Text>
-            </View>
-          </View>
+
 
           {/* Đánh giá sao */}
           <View style={styles.ratingContainer}>

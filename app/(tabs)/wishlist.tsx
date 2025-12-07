@@ -16,7 +16,7 @@ import { ProductCard } from '@/components/ProductCard';
 import colors from '@/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 // Nếu chạy trên emulator Android thì localhost phải là 10.0.2.2
 // Nếu chạy trên iOS simulator hoặc thiết bị thật thì dùng localhost hoặc IP máy
 
