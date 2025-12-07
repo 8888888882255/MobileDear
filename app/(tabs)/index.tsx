@@ -65,7 +65,7 @@ interface DanhMuc {
   trangThai: number;
 }
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
 const mapApiProductToProduct = (item: ApiProduct): Product => {
   return {

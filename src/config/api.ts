@@ -9,7 +9,7 @@ function getApiUrl(): string {
   }
   
   // Auto-detect based on platform for development
-  const LOCAL_IP = '192.168.1.11'; // Thay bằng IP WiFi của bạn
+  const LOCAL_IP = '192.168.1.2'; // Thay bằng IP WiFi của bạn
   const PORT = '5083';
   
   if (Platform.OS === 'web') {
@@ -30,7 +30,7 @@ function getApiUrl(): string {
 }
 
 const API_URL = getApiUrl();
-// const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+// const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
 export const api = {
   baseUrl: API_URL,

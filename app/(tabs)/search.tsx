@@ -55,7 +55,7 @@ interface ProductFilterParams {
 }
 
 // API Configuration
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
 const api = {
   baseUrl: API_URL,

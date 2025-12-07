@@ -21,7 +21,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.11:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
 type SanPham = {
   maSanPham: number;
