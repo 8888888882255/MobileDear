@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Lock, ArrowLeft, CheckCircle, Mail } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -132,14 +133,12 @@ export default function ResetPasswordScreen() {
       await AuthService.resetPassword(resetData);
       
       // Show success message
-      if (Platform.OS === 'web') {
-        window.alert('Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.');
-      } else {
-        Alert.alert(
-          'Thành công',
-          'Mật khẩu đã được đặt lại thành công! Bạn có thể đăng nhập với mật khẩu mới.'
-        );
-      }
+      // Show success message
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Mật khẩu đã được đặt lại thành công! Bạn có thể đăng nhập với mật khẩu mới.',
+      });
       
       // Navigate to login screen (works for both web and mobile)
       router.replace('/auth/login');
@@ -158,11 +157,11 @@ export default function ResetPasswordScreen() {
         }
       }
 
-      if (Platform.OS === 'web') {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert('Lỗi', errorMessage);
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -170,11 +169,11 @@ export default function ResetPasswordScreen() {
 
   const handleResendOTP = async () => {
     if (!formData.email.trim()) {
-      if (Platform.OS === 'web') {
-        window.alert('Vui lòng nhập email trước khi gửi lại mã OTP.');
-      } else {
-        Alert.alert('Lỗi', 'Vui lòng nhập email trước khi gửi lại mã OTP.');
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập email trước khi gửi lại mã OTP.',
+      });
       return;
     }
 
@@ -182,15 +181,11 @@ export default function ResetPasswordScreen() {
     try {
       await AuthService.forgotPassword(formData.email);
       
-      if (Platform.OS === 'web') {
-        window.alert('Mã OTP mới đã được gửi đến email của bạn.');
-      } else {
-        Alert.alert(
-          'Thành công',
-          'Mã OTP mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
-          [{ text: 'OK' }]
-        );
-      }
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Mã OTP mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
+      });
     } catch (error: any) {
       console.error('Resend OTP error:', error);
       
@@ -200,11 +195,11 @@ export default function ResetPasswordScreen() {
         errorMessage = 'Email không tồn tại trong hệ thống.';
       }
 
-      if (Platform.OS === 'web') {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert('Lỗi', errorMessage);
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }

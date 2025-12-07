@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Star, Camera, X } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
@@ -49,13 +50,21 @@ export default function ProductReviewScreen() {
 
   const handleAddImage = async () => {
     if (images.length >= 5) {
-      Alert.alert('Giới hạn', 'Chỉ được tải lên tối đa 5 ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Giới hạn',
+        text2: 'Chỉ được tải lên tối đa 5 ảnh',
+      });
       return;
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Cần quyền truy cập', 'Vui lòng cho phép truy cập thư viện ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Cần quyền truy cập',
+        text2: 'Vui lòng cho phép truy cập thư viện ảnh',
+      });
       return;
     }
 
@@ -77,15 +86,27 @@ export default function ProductReviewScreen() {
 
   const handleSubmitReview = async () => {
     if (!user) {
-      Alert.alert('Lỗi', 'Bạn cần đăng nhập để gửi đánh giá');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Bạn cần đăng nhập để gửi đánh giá',
+      });
       return;
     }
     if (rating === 0) {
-      Alert.alert('Thiếu đánh giá', 'Vui lòng chọn số sao');
+      Toast.show({
+        type: 'error',
+        text1: 'Thiếu đánh giá',
+        text2: 'Vui lòng chọn số sao',
+      });
       return;
     }
     if (!review.trim()) {
-      Alert.alert('Thiếu nội dung', 'Vui lòng nhập nội dung đánh giá');
+      Toast.show({
+        type: 'error',
+        text1: 'Thiếu nội dung',
+        text2: 'Vui lòng nhập nội dung đánh giá',
+      });
       return;
     }
 
@@ -124,19 +145,28 @@ export default function ProductReviewScreen() {
       });
 
       if (response.ok) {
-        Alert.alert(
-          'Gửi thành công!',
-          'Cảm ơn bạn! Đánh giá sẽ được duyệt và hiển thị sớm.',
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        Toast.show({
+          type: 'success',
+          text1: 'Gửi thành công!',
+          text2: 'Cảm ơn bạn! Đánh giá sẽ được duyệt và hiển thị sớm.',
+        });
+        setTimeout(() => router.back(), 1500);
       } else {
         const error = await response.text();
         console.log('Lỗi server:', error);
-        Alert.alert('Gửi thất bại', 'Đã có lỗi xảy ra. Vui lòng thử lại.');
+        Toast.show({
+          type: 'error',
+          text1: 'Gửi thất bại',
+          text2: 'Đã có lỗi xảy ra. Vui lòng thử lại.',
+        });
       }
     } catch (err) {
       console.log('Network error:', err);
-      Alert.alert('Lỗi mạng', 'Không thể kết nối đến server');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi mạng',
+        text2: 'Không thể kết nối đến server',
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLocalSearchParams } from 'expo-router';
 import { Search as SearchIcon, Grid, List, Filter } from 'lucide-react-native';
 import Constants from 'expo-constants';
@@ -155,7 +156,11 @@ export default function SearchScreen() {
       }
     } catch (error) {
       console.error('❌ Load products error:', error);
-      Alert.alert('Lỗi', `Không thể tải danh sách sản phẩm: ${error}`);
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: `Không thể tải danh sách sản phẩm: ${error}`,
+      });
       setFilteredProducts([]);
     } finally {
       setIsLoading(false);

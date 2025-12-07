@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { Product } from '@/types';
@@ -91,7 +92,11 @@ export default function ProductDetailScreen() {
 
         setProduct(mapped);
       } catch (err) {
-        Alert.alert('Lỗi', 'Không thể tải sản phẩm');
+        Toast.show({
+          type: 'error',
+          text1: 'Lỗi',
+          text2: 'Không thể tải sản phẩm',
+        });
       } finally {
         setLoadingProduct(false);
       }
@@ -149,7 +154,11 @@ export default function ProductDetailScreen() {
     setTimeout(() => {
       addToCart(product!, quantity, '', '');
       setIsAddingToCart(false);
-      Alert.alert('Thành công', 'Đã thêm vào giỏ hàng');
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Đã thêm vào giỏ hàng',
+      });
     }, 500);
   };
 

@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { ChevronLeft, Mail, Check } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -51,11 +52,12 @@ export default function NewsletterScreen() {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
-      Alert.alert(
-        'Đăng ký thành công',
-        'Cảm ơn bạn đã đăng ký nhận bản tin!',
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      Toast.show({
+        type: 'success',
+        text1: 'Đăng ký thành công',
+        text2: 'Cảm ơn bạn đã đăng ký nhận bản tin!',
+      });
+      setTimeout(() => router.back(), 1500);
     }, 1500);
   };
 

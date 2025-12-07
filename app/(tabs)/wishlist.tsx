@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import Constants from 'expo-constants';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Heart } from 'lucide-react-native';
@@ -120,7 +121,11 @@ export default function WishlistScreen() {
       console.log(`Đã tải ${validProducts.length}/${wishlist.length} sản phẩm yêu thích`);
     } catch (error) {
       console.error('Lỗi tải wishlist:', error);
-      Alert.alert('Lỗi', 'Không thể tải danh sách yêu thích');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tải danh sách yêu thích',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -145,7 +150,11 @@ export default function WishlistScreen() {
           onPress: async () => {
             await AsyncStorage.removeItem('wishlist');
             setProducts([]);
-            Alert.alert('Thành công', 'Đã xóa toàn bộ danh sách yêu thích');
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+              text2: 'Đã xóa toàn bộ danh sách yêu thích',
+            });
           },
         },
       ]

@@ -9,6 +9,7 @@ import {
   Image,
   Platform
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import {
   User,
@@ -68,11 +69,19 @@ export default function ProfileScreen() {
       setIsLoggingOut(true);
       logout()
         .then(() => {
-          window.alert('Đã đăng xuất thành công!');
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công',
+            text2: 'Đã đăng xuất thành công!',
+          });
         })
         .catch((error) => {
           console.error('Profile - Logout error:', error);
-          window.alert('Không thể đăng xuất. Vui lòng thử lại.');
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Không thể đăng xuất. Vui lòng thử lại.',
+          });
         })
         .finally(() => {
           setIsLoggingOut(false);
@@ -90,10 +99,18 @@ export default function ProfileScreen() {
               setIsLoggingOut(true);
               try {
                 await logout();
-                Alert.alert('Thành công', 'Đã đăng xuất thành công!', [{ text: 'OK' }]);
+                Toast.show({
+                  type: 'success',
+                  text1: 'Thành công',
+                  text2: 'Đã đăng xuất thành công!',
+                });
               } catch (error) {
                 console.error('Profile - Logout error:', error);
-                Alert.alert('Lỗi', 'Không thể đăng xuất. Vui lòng thử lại.');
+                Toast.show({
+                  type: 'error',
+                  text1: 'Lỗi',
+                  text2: 'Không thể đăng xuất. Vui lòng thử lại.',
+                });
               } finally {
                 setIsLoggingOut(false);
               }
