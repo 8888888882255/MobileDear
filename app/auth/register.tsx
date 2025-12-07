@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Mail, Lock, User, UserPlus } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -159,14 +160,11 @@ export default function RegisterScreen() {
       
       if (result) {
         // Show success message
-        if (Platform.OS === 'web') {
-          window.alert('Đăng ký thành công! Vui lòng đăng nhập với tài khoản vừa tạo.');
-        } else {
-          Alert.alert(
-            'Đăng ký thành công',
-            'Tài khoản của bạn đã được tạo thành công. Vui lòng đăng nhập để tiếp tục.'
-          );
-        }
+        Toast.show({
+          type: 'success',
+          text1: 'Đăng ký thành công',
+          text2: 'Tài khoản của bạn đã được tạo thành công. Vui lòng đăng nhập để tiếp tục.',
+        });
         
         // Navigate to login screen (works for both web and mobile)
         router.replace('/auth/login');
@@ -186,11 +184,11 @@ export default function RegisterScreen() {
         }
       }
 
-      if (Platform.OS === 'web') {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert('Lỗi đăng ký', errorMessage);
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi đăng ký',
+        text2: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }

@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, CheckCircle, RefreshCw } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -78,11 +79,11 @@ export default function OTPVerificationScreen() {
 
   const handleResendOTP = async () => {
     if (!email.trim()) {
-      if (Platform.OS === 'web') {
-        window.alert('Vui lòng nhập email trước khi gửi lại mã OTP.');
-      } else {
-        Alert.alert('Lỗi', 'Vui lòng nhập email trước khi gửi lại mã OTP.');
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập email trước khi gửi lại mã OTP.',
+      });
       return;
     }
 
@@ -90,15 +91,11 @@ export default function OTPVerificationScreen() {
     try {
       await AuthService.forgotPassword(email);
       
-      if (Platform.OS === 'web') {
-        window.alert('Mã OTP mới đã được gửi đến email của bạn.');
-      } else {
-        Alert.alert(
-          'Thành công',
-          'Mã OTP mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
-          [{ text: 'OK' }]
-        );
-      }
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Mã OTP mới đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư.',
+      });
     } catch (error: any) {
       console.error('Resend OTP error:', error);
       
@@ -108,11 +105,11 @@ export default function OTPVerificationScreen() {
         errorMessage = 'Email không tồn tại trong hệ thống.';
       }
 
-      if (Platform.OS === 'web') {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert('Lỗi', errorMessage);
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }

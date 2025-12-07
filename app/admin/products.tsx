@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { Plus, Search, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -69,7 +70,11 @@ export default function AdminProductsScreen() {
       setProducts(activeProducts);
       setFilteredProducts(activeProducts);
     } catch (err: any) {
-      Alert.alert('Lỗi', err.message || 'Không thể tải danh sách sản phẩm');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: err.message || 'Không thể tải danh sách sản phẩm',
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -152,16 +157,24 @@ export default function AdminProductsScreen() {
           text: 'Xóa',
           style: 'destructive',
           onPress: async () => {
-            try {
-              const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
-                method: 'DELETE',
-              });
-              if (!res.ok) throw new Error('Xóa thất bại');
-              Alert.alert('Thành công', 'Đã xóa sản phẩm');
-              loadProducts(); // Refresh danh sách
-            } catch (err: any) {
-              Alert.alert('Lỗi', err.message || 'Không thể xóa');
-            }
+              try {
+                const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
+                  method: 'DELETE',
+                });
+                if (!res.ok) throw new Error('Xóa thất bại');
+                Toast.show({
+                  type: 'success',
+                  text1: 'Thành công',
+                  text2: 'Đã xóa sản phẩm',
+                });
+                loadProducts(); // Refresh danh sách
+              } catch (err: any) {
+                Toast.show({
+                  type: 'error',
+                  text1: 'Lỗi',
+                  text2: err.message || 'Không thể xóa',
+                });
+              }
           },
         },
       ]

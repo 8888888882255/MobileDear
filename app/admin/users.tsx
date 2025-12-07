@@ -11,6 +11,7 @@ import {
   Modal,
   ScrollView
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { 
   Search, 
@@ -89,7 +90,11 @@ export default function AdminUsersScreen() {
       setFilteredUsers(mappedUsers);
     } catch (error) {
       console.error('Error fetching users:', error);
-      Alert.alert('Error', 'Failed to load users');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load users'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -216,12 +221,21 @@ export default function AdminUsersScreen() {
               };
               
               await AuthService.updateUserProfile(Number(userId), updateData);
+              Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: `User ${targetUser.isAdmin ? 'removed from admin' : 'made admin'} successfully`
+              });
             } catch (error) {
               // Revert on error
               console.error('Failed to update role, reverting', error);
               setUsers(users);
               applyFilters(searchQuery, filterRole, filterStatus, users);
-              Alert.alert('Error', 'Failed to update user role');
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to update user role'
+              });
             } finally {
               setProcessingId(null);
             }
@@ -270,12 +284,21 @@ export default function AdminUsersScreen() {
               };
 
               await AuthService.updateUserProfile(Number(userId), updateData);
+              Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: `User ${isBanned ? 'unbanned' : 'banned'} successfully`
+              });
             } catch (error) {
               // Revert on error
               console.error('Failed to update status, reverting', error);
               setUsers(users);
               applyFilters(searchQuery, filterRole, filterStatus, users);
-              Alert.alert('Error', 'Failed to update user status');
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to update user status'
+              });
             } finally {
               setProcessingId(null);
             }
@@ -305,8 +328,17 @@ export default function AdminUsersScreen() {
               const updatedUsers = users.filter(u => u.id !== userId);
               setUsers(updatedUsers);
               applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+              Toast.show({
+                type: 'success',
+                text1: 'Success',
+                text2: 'User deleted successfully'
+              });
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete user');
+              Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'Failed to delete user'
+              });
             } finally {
               setProcessingId(null);
             }

@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Eye, EyeOff, Star } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
@@ -41,7 +42,11 @@ export default function CommentDetailScreen() {
         const data = await res.json();
         setComment(data);
       } catch {
-        Alert.alert('Lỗi', 'Không tải được bình luận');
+        Toast.show({
+          type: 'error',
+          text1: 'Lỗi',
+          text2: 'Không tải được bình luận',
+        });
         router.back();
       } finally {
         setLoading(false);
@@ -67,9 +72,17 @@ export default function CommentDetailScreen() {
                 body: JSON.stringify({ trangThai: comment.trangThai === 1 ? 0 : 1 }),
               });
               setComment({ ...comment, trangThai: comment.trangThai === 1 ? 0 : 1 });
-              Alert.alert('Thành công!', 'Đã cập nhật trạng thái');
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công!',
+                text2: 'Đã cập nhật trạng thái',
+              });
             } catch {
-              Alert.alert('Lỗi', 'Không thể cập nhật');
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Không thể cập nhật',
+              });
             }
           },
         },

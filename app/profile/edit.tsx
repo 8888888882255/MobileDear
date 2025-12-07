@@ -11,6 +11,7 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Save, User, Mail, Phone, Calendar, FileText, Camera } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -145,7 +146,11 @@ export default function EditProfileScreen() {
     // Mobile & Desktop
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Cần quyền', 'Vui lòng cấp quyền truy cập thư viện ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Cần quyền',
+        text2: 'Vui lòng cấp quyền truy cập thư viện ảnh',
+      });
       return;
     }
 
@@ -221,21 +226,12 @@ export default function EditProfileScreen() {
         if (!success) throw new Error('Cập nhật thất bại');
       }
       
-      if (Platform.OS === 'web') {
-        window.alert('Cập nhật thông tin thành công!');
-        router.replace('/(tabs)/profile');
-      } else {
-        Alert.alert(
-          'Thành công',
-          'Thông tin của bạn đã được cập nhật thành công!',
-          [
-            {
-              text: 'OK',
-              onPress: () => router.replace('/(tabs)/profile')
-            }
-          ]
-        );
-      }
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Thông tin của bạn đã được cập nhật thành công!',
+      });
+      router.replace('/(tabs)/profile');
     } catch (error: any) {
       console.error('Profile update error:', error);
       
@@ -251,11 +247,11 @@ export default function EditProfileScreen() {
         }
       }
 
-      if (Platform.OS === 'web') {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert('Lỗi', errorMessage);
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: errorMessage,
+      });
     } finally {
       setIsSaving(false);
     }

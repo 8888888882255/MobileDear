@@ -7,12 +7,12 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
   Image,
   FlatList,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -86,7 +86,11 @@ export default function EditProductScreen() {
     try {
       await Promise.all([loadProduct(), loadDanhMuc()]);
     } catch {
-      Alert.alert('Lỗi', 'Không tải được dữ liệu');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không tải được dữ liệu'
+      });
       router.back();
     } finally {
       setLoading(false);
@@ -157,7 +161,11 @@ export default function EditProductScreen() {
     }
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return Alert.alert('Cần quyền truy cập thư viện ảnh');
+    if (status !== 'granted') return Toast.show({
+      type: 'error',
+      text1: 'Lỗi',
+      text2: 'Cần quyền truy cập thư viện ảnh'
+    });
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
@@ -182,10 +190,22 @@ export default function EditProductScreen() {
   };
 
   const validate = () => {
-    if (!name.trim()) return Alert.alert('Lỗi', 'Tên sản phẩm bắt buộc');
-    if (!price || Number(price) <= 0) return Alert.alert('Lỗi', 'Giá bán phải > 0');
-    if (images.length === 0) return Alert.alert('Lỗi', 'Cần ít nhất 1 hình ảnh');
-    if (!selectedMaLoai || !selectedMaThuongHieu) return Alert.alert('Lỗi', 'Chọn loại và thương hiệu');
+    if (!name.trim()) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Tên sản phẩm bắt buộc' });
+      return false;
+    }
+    if (!price || Number(price) <= 0) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Giá bán phải > 0' });
+      return false;
+    }
+    if (images.length === 0) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Cần ít nhất 1 hình ảnh' });
+      return false;
+    }
+    if (!selectedMaLoai || !selectedMaThuongHieu) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Chọn loại và thương hiệu' });
+      return false;
+    }
     return true;
   };
 
@@ -238,11 +258,19 @@ export default function EditProductScreen() {
         throw new Error(err || 'Cập nhật thất bại');
       }
 
-      Alert.alert('Thành công!', 'Sản phẩm đã được cập nhật!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công!',
+        text2: 'Sản phẩm đã được cập nhật!',
+        onHide: () => router.back()
+      });
+      setTimeout(() => router.back(), 1000);
     } catch (err: any) {
-      Alert.alert('Lỗi', err.message || 'Không thể cập nhật');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: err.message || 'Không thể cập nhật'
+      });
     } finally {
       setSaving(false);
     }

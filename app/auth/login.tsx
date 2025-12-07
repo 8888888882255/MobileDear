@@ -12,6 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import Toast from 'react-native-toast-message';
 import { Mail, Lock, LogIn, UserPlus, KeyRound, Smartphone, Download } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -73,25 +74,27 @@ export default function LoginScreen() {
       
       if (success) {
         // Navigate immediately on success
+        Toast.show({
+          type: 'success',
+          text1: 'Đăng nhập thành công',
+          text2: 'Chào mừng bạn quay trở lại!',
+        });
         router.replace('/');
       } else {
-        if (Platform.OS === 'web') {
-          window.alert('Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.');
-        } else {
-          Alert.alert(
-            'Đăng nhập thất bại',
-            'Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.'
-          );
-        }
+        Toast.show({
+          type: 'error',
+          text1: 'Đăng nhập thất bại',
+          text2: 'Email/Tài khoản hoặc mật khẩu không đúng. Vui lòng thử lại.',
+        });
       }
     } catch (error) {
       console.error('Login error:', error);
       const errorMessage = 'Có lỗi xảy ra khi đăng nhập. Vui lòng kiểm tra kết nối mạng và thử lại.';
-      if (Platform.OS === 'web') {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert('Lỗi', errorMessage);
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: errorMessage,
+      });
     }
   };
 
@@ -109,7 +112,11 @@ export default function LoginScreen() {
     } else {
       // For React Native, you might need to use Linking
       // Linking.openURL(appStoreUrl);
-      Alert.alert('Thông báo', `Mở ${Platform.OS === 'ios' ? 'App Store' : 'Google Play'} để tải app`);
+      Toast.show({
+        type: 'info',
+        text1: 'Thông báo',
+        text2: `Mở ${Platform.OS === 'ios' ? 'App Store' : 'Google Play'} để tải app`,
+      });
     }
   };
 

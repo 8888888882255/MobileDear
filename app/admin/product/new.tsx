@@ -12,6 +12,7 @@ import {
   FlatList,
   Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { Plus, Trash2 } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -92,7 +93,11 @@ export default function NewProductScreen() {
       setThuongHieuList(Array.isArray(dataThuongHieu) ? dataThuongHieu : []);
       setHashtagList(Array.isArray(dataHashtag) ? dataHashtag : []);
     } catch (err) {
-      Alert.alert('Lỗi', 'Không tải được danh mục');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không tải được danh mục',
+      });
     }
   };
 
@@ -126,7 +131,11 @@ export default function NewProductScreen() {
     // Mobile & Desktop (Android/iOS/Windows/macOS)
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Cần quyền', 'Vui lòng cấp quyền truy cập thư viện ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Cần quyền',
+        text2: 'Vui lòng cấp quyền truy cập thư viện ảnh',
+      });
       return;
     }
 
@@ -156,13 +165,34 @@ export default function NewProductScreen() {
   };
 
   const validateForm = () => {
-    if (!name.trim()) return Alert.alert('Lỗi', 'Tên sản phẩm là bắt buộc');
-    if (!description.trim()) return Alert.alert('Lỗi', 'Mô tả là bắt buộc');
-    if (!price || Number(price) <= 0) return Alert.alert('Lỗi', 'Giá bán phải lớn hơn 0');
-    if (!stock || Number(stock) < 0) return Alert.alert('Lỗi', 'Số lượng tồn kho không hợp lệ');
-    if (images.length === 0) return Alert.alert('Lỗi', 'Cần ít nhất 1 hình ảnh');
-    if (!selectedMaLoai) return Alert.alert('Lỗi', 'Vui lòng chọn Loại sản phẩm');
-    if (!selectedMaThuongHieu) return Alert.alert('Lỗi', 'Vui lòng chọn Thương hiệu');
+    if (!name.trim()) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Tên sản phẩm là bắt buộc' });
+      return false;
+    }
+    if (!description.trim()) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Mô tả là bắt buộc' });
+      return false;
+    }
+    if (!price || Number(price) <= 0) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Giá bán phải lớn hơn 0' });
+      return false;
+    }
+    if (!stock || Number(stock) < 0) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Số lượng tồn kho không hợp lệ' });
+      return false;
+    }
+    if (images.length === 0) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Cần ít nhất 1 hình ảnh' });
+      return false;
+    }
+    if (!selectedMaLoai) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng chọn Loại sản phẩm' });
+      return false;
+    }
+    if (!selectedMaThuongHieu) {
+      Toast.show({ type: 'error', text1: 'Lỗi', text2: 'Vui lòng chọn Thương hiệu' });
+      return false;
+    }
     return true;
   };
 
@@ -213,15 +243,19 @@ export default function NewProductScreen() {
         throw new Error('Tạo sản phẩm thất bại: ' + errorText.substring(0, 200));
       }
 
-      Alert.alert(
-        'Thành công!',
-        'Sản phẩm và tất cả hình ảnh đã được tạo thành công!',
-        [{ text: 'OK', onPress: () => router.back() }],
-        { cancelable: false }
-      );
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công!',
+        text2: 'Sản phẩm và tất cả hình ảnh đã được tạo thành công!',
+      });
+      router.back();
     } catch (error: any) {
       console.error('Upload failed:', error);
-      Alert.alert('Lỗi', error.message || 'Không thể tạo sản phẩm');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: error.message || 'Không thể tạo sản phẩm',
+      });
     } finally {
       setIsSaving(false);
     }

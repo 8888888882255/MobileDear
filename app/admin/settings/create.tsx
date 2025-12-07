@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
   Switch,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft, Save } from 'lucide-react-native';
 import colors from '@/constants/colors';
@@ -35,26 +36,36 @@ export default function CreateSettingScreen() {
 
   const handleSave = async () => {
     if (!formData.tenGiaoDien?.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập tên',
+      });
       return;
     }
 
     setIsSaving(true);
     try {
       const result = await SettingsService.create(formData);
-      Alert.alert('Thành công', 'Đã tạo thành công!', [
-        {
-          text: 'Về danh sách',
-          onPress: () => router.back(),
-        },
-        {
-          text: 'Thêm ảnh ngay',
-          onPress: () =>
-            router.replace(`/admin/settings/edit?id=${result.maGiaoDien}`),
-        },
-      ]);
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Đã tạo thành công!',
+        onHide: () => {
+             router.replace(`/admin/settings/edit?id=${result.maGiaoDien}`);
+        }
+      });
+      // Fallback if onHide is not triggered
+      setTimeout(() => {
+         router.replace(`/admin/settings/edit?id=${result.maGiaoDien}`);
+      }, 1000);
+
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể tạo mới. Vui lòng thử lại.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tạo mới. Vui lòng thử lại.',
+      });
     } finally {
       setIsSaving(false);
     }

@@ -12,6 +12,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { Search, Star, Eye, EyeOff, Package } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -57,7 +58,11 @@ export default function AdminCommentsScreen() {
       const data = await res.json();
       setComments(data || []);
     } catch {
-      Alert.alert('Lỗi', 'Không tải được danh sách bình luận');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không tải được danh sách bình luận',
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -84,9 +89,17 @@ export default function AdminCommentsScreen() {
                 body: JSON.stringify({ trangThai: currentStatus === 1 ? 0 : 1 }),
               });
               fetchComments();
-              Alert.alert('Thành công', 'Cập nhật trạng thái thành công!');
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Cập nhật trạng thái thành công!',
+              });
             } catch {
-              Alert.alert('Lỗi', 'Không thể cập nhật trạng thái');
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Không thể cập nhật trạng thái',
+              });
             }
           },
         },

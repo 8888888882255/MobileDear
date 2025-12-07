@@ -8,10 +8,10 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Image,
-  Alert,
-  ActivityIndicator,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Upload, X, Check, Image as ImageIcon, ArrowLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -59,11 +59,19 @@ export default function EditCategoryScreen() {
           setType(data.loaiDanhMuc);
           setCurrentImage(data.hinhAnh || '');
         } else {
-          Alert.alert('Lỗi', 'Không tìm thấy danh mục');
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Không tìm thấy danh mục',
+          });
           router.back();
         }
       } catch {
-        Alert.alert('Lỗi mạng', 'Không thể kết nối server');
+        Toast.show({
+          type: 'error',
+          text1: 'Lỗi mạng',
+          text2: 'Không thể kết nối server',
+        });
         router.back();
       } finally {
         setLoading(false);
@@ -76,7 +84,11 @@ export default function EditCategoryScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Cần quyền', 'Vui lòng cho phép truy cập thư viện ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Cần quyền',
+        text2: 'Vui lòng cho phép truy cập thư viện ảnh',
+      });
       return;
     }
 
@@ -94,7 +106,11 @@ export default function EditCategoryScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên danh mục');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập tên danh mục',
+      });
       return;
     }
 
@@ -130,18 +146,29 @@ export default function EditCategoryScreen() {
       const result = await response.json();
 
       if (response.ok) {
-        Alert.alert('Thành công!', 'Cập nhật danh mục thành công!', [
-          { text: 'OK', onPress: () => router.back() }
-        ]);
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công!',
+          text2: 'Cập nhật danh mục thành công!',
+        });
+        router.back();
       } else {
         const errorMsg = result.errors
           ? Object.values(result.errors).flat().join(', ')
           : result.title || 'Lỗi không xác định';
-        Alert.alert('Cập nhật thất bại', errorMsg);
+        Toast.show({
+          type: 'error',
+          text1: 'Cập nhật thất bại',
+          text2: errorMsg,
+        });
       }
     } catch (err) {
       console.log('Error:', err);
-      Alert.alert('Lỗi mạng', 'Không thể kết nối server');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi mạng',
+        text2: 'Không thể kết nối server',
+      });
     } finally {
       setSaving(false);
     }

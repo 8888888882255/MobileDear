@@ -7,12 +7,62 @@ import { Platform } from "react-native";
 import { ErrorBoundary } from "./error-boundary";
 import colors from "@/constants/colors";
 import { useUserStore } from "@/store/user-store";
+import Toast, { BaseToast, ErrorToast } from 'react-native-toast-message';
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
 };
 
 SplashScreen.preventAutoHideAsync();
+
+const toastConfig = {
+  success: (props: any) => (
+    <BaseToast
+      {...props}
+      style={{
+        borderLeftColor: colors.success || '#22c55e',
+        marginTop: Platform.OS === 'web' ? 20 : 0,
+        marginRight: Platform.OS === 'web' ? 20 : 0,
+        alignSelf: Platform.OS === 'web' ? 'flex-end' : 'center',
+        width: Platform.OS === 'web' ? 350 : '90%',
+        backgroundColor: colors.card || '#fff',
+      }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text || '#000'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: colors.textLight || '#666'
+      }}
+    />
+  ),
+  error: (props: any) => (
+    <ErrorToast
+      {...props}
+      style={{
+        borderLeftColor: colors.error || '#ef4444',
+        marginTop: Platform.OS === 'web' ? 20 : 0,
+        marginRight: Platform.OS === 'web' ? 20 : 0,
+        alignSelf: Platform.OS === 'web' ? 'flex-end' : 'center',
+        width: Platform.OS === 'web' ? 350 : '90%',
+        backgroundColor: colors.card || '#fff',
+      }}
+      contentContainerStyle={{ paddingHorizontal: 15 }}
+      text1Style={{
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text || '#000'
+      }}
+      text2Style={{
+        fontSize: 14,
+        color: colors.textLight || '#666'
+      }}
+    />
+  )
+};
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -59,6 +109,7 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <RootLayoutNav />
+      <Toast config={toastConfig} />
     </ErrorBoundary>
   );
 }

@@ -13,6 +13,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Plus,
@@ -86,7 +87,11 @@ export default function AdminSettingsScreen() {
       setIsSelectionMode(false);
     } catch (error) {
       console.error('Error loading settings:', error);
-      Alert.alert('Lỗi', 'Không thể tải dữ liệu. Vui lòng thử lại.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tải dữ liệu. Vui lòng thử lại.'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -102,11 +107,21 @@ export default function AdminSettingsScreen() {
         trangThai: 1 
       });
       
-      Alert.alert('Thành công', 'Đã cập nhật Logo hiển thị!');
+
+      
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Đã cập nhật Logo hiển thị!'
+      });
       setIsConflictModalVisible(false);
       loadData();
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể cập nhật Logo. Vui lòng thử lại.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể cập nhật Logo. Vui lòng thử lại.'
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -158,10 +173,18 @@ export default function AdminSettingsScreen() {
           onPress: async () => {
             try {
               await SettingsService.delete(item.maGiaoDien);
-              Alert.alert('Thành công', 'Đã xóa thành công!');
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Đã xóa thành công!'
+              });
               loadData();
             } catch (error) {
-              Alert.alert('Lỗi', 'Không thể xóa. Vui lòng thử lại.');
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Không thể xóa. Vui lòng thử lại.'
+              });
             }
           },
         },
@@ -229,7 +252,11 @@ export default function AdminSettingsScreen() {
       setAllItems(prev => prev.map(i => 
         i.maGiaoDien === item.maGiaoDien ? { ...i, trangThai: item.trangThai } : i
       ));
-      Alert.alert('Lỗi', 'Không thể cập nhật trạng thái.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể cập nhật trạng thái.'
+      });
     }
   };
 
@@ -286,9 +313,17 @@ export default function AdminSettingsScreen() {
               }
               
               await loadData();
-              Alert.alert('Thành công', `Đã ${actionText} thành công!`);
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: `Đã ${actionText} thành công!`
+              });
             } catch (error) {
-              Alert.alert('Lỗi', 'Có lỗi xảy ra khi xử lý hàng loạt.');
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Có lỗi xảy ra khi xử lý hàng loạt.'
+              });
             } finally {
               setIsProcessing(false);
             }

@@ -12,6 +12,7 @@ import {
   Image,
 } from "react-native";
 import { useRouter } from "expo-router";
+import Toast from "react-native-toast-message";
 import { Mail, ArrowLeft, Send } from "lucide-react-native";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -71,16 +72,11 @@ export default function ForgotPasswordScreen() {
       await AuthService.forgotPassword(email);
 
       // Show success message
-      if (Platform.OS === "web") {
-        window.alert(
-          "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư."
-        );
-      } else {
-        Alert.alert(
-          "Thành công",
-          "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư và nhập mã để đặt lại mật khẩu."
-        );
-      }
+      Toast.show({
+        type: "success",
+        text1: "Thành công",
+        text2: "Mã OTP đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư và nhập mã để đặt lại mật khẩu.",
+      });
 
       // Navigate to OTP verification screen with email (works for both web and mobile)
       // @ts-ignore - temporarily ignore routing type issue
@@ -102,11 +98,11 @@ export default function ForgotPasswordScreen() {
         }
       }
 
-      if (Platform.OS === "web") {
-        window.alert(errorMessage);
-      } else {
-        Alert.alert("Lỗi", errorMessage);
-      }
+      Toast.show({
+        type: "error",
+        text1: "Lỗi",
+        text2: errorMessage,
+      });
     } finally {
       setIsLoading(false);
     }

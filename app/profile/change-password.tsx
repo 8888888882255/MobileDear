@@ -10,6 +10,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { Lock, ChevronLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -124,21 +125,30 @@ export default function ChangePasswordScreen() {
       setConfirmPassword('');
       
       if (Platform.OS === 'web') {
-        window.alert('Đổi mật khẩu thành công!');
+        // Keep window.alert for web if preferred, or switch to Toast as well.
+        // Switching to Toast for consistency
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công',
+          text2: 'Đổi mật khẩu thành công',
+        });
         router.back();
       } else {
-        Alert.alert('Thành công', 'Đổi mật khẩu thành công', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công',
+          text2: 'Đổi mật khẩu thành công',
+        });
+        router.back();
       }
     } catch (error: any) {
       console.error('Change password failed:', error);
       
-      if (Platform.OS === 'web') {
-        window.alert(error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
-      } else {
-        Alert.alert('Lỗi', error.message || 'Có lỗi xảy ra. Vui lòng thử lại.');
-      }
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: error.message || 'Có lỗi xảy ra. Vui lòng thử lại.',
+      });
     } finally {
       setIsLoading(false);
     }

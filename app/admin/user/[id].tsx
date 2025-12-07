@@ -9,6 +9,7 @@ import {
   Alert,
   Image
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Camera } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -66,7 +67,12 @@ export default function EditUserScreen() {
       setIsAdmin(data.vaiTro === 1);
     } catch (error) {
       console.error('Error fetching user details:', error);
-      Alert.alert('Error', 'Failed to load user details');
+      console.error('Error fetching user details:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Failed to load user details'
+      });
       router.back();
     } finally {
       setIsLoading(false);
@@ -75,16 +81,28 @@ export default function EditUserScreen() {
 
   const validateForm = () => {
     if (!name.trim()) {
-      Alert.alert('Error', 'Name is required');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Name is required'
+      });
       return false;
     }
     if (!email.trim()) {
-      Alert.alert('Error', 'Email is required');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Email is required'
+      });
       return false;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Please enter a valid email address');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Please enter a valid email address'
+      });
       return false;
     }
     return true;
@@ -113,23 +131,24 @@ export default function EditUserScreen() {
 
       await AuthService.updateUserProfile(Number(id), updateModel);
 
-      Alert.alert(
-        'Success',
-        'User updated successfully!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate back and refresh list (list should auto-refresh if using focus effect or store, 
-              // but here we just go back. Ideally list screen refetches on focus)
-              router.back();
-            }
-          }
-        ]
-      );
+      Toast.show({
+        type: 'success',
+        text1: 'Success',
+        text2: 'User updated successfully!',
+        onHide: () => {
+           router.back();
+        }
+      });
+      // Fallback navigation if onHide doesn't trigger immediately or as expected in some envs
+      setTimeout(() => router.back(), 1000);
     } catch (error: any) {
       console.error('Error updating user:', error);
-      Alert.alert('Error', error.message || 'Failed to update user');
+      console.error('Error updating user:', error);
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: error.message || 'Failed to update user'
+      });
     } finally {
       setIsSaving(false);
     }

@@ -12,6 +12,7 @@ import {
   Image,
   Switch,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import {
@@ -59,7 +60,11 @@ export default function EditSettingScreen() {
       });
     } catch (error) {
       console.error('Error loading setting:', error);
-      Alert.alert('Lỗi', 'Không thể tải dữ liệu.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tải dữ liệu.',
+      });
       router.back();
     } finally {
       setIsLoading(false);
@@ -68,7 +73,11 @@ export default function EditSettingScreen() {
 
   const handleSave = async () => {
     if (!id || !formData.tenGiaoDien?.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập tên',
+      });
       return;
     }
 
@@ -82,11 +91,18 @@ export default function EditSettingScreen() {
       };
       
       await SettingsService.update(Number(id), payload);
-      Alert.alert('Thành công', 'Đã cập nhật thành công!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Đã cập nhật thành công!',
+      });
+      router.back();
     } catch (error) {
-      Alert.alert('Lỗi', 'Không thể cập nhật. Vui lòng thử lại.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể cập nhật. Vui lòng thử lại.',
+      });
     } finally {
       setIsSaving(false);
     }
@@ -95,7 +111,11 @@ export default function EditSettingScreen() {
   const handlePickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
-      Alert.alert('Lỗi', 'Cần quyền truy cập thư viện ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Cần quyền truy cập thư viện ảnh',
+      });
       return;
     }
 
@@ -119,11 +139,19 @@ export default function EditSettingScreen() {
       const blob = await response.blob();
       
       await SettingsService.uploadMedia(Number(id), blob);
-      Alert.alert('Thành công', 'Đã upload ảnh!');
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Đã upload ảnh!',
+      });
       loadData(); // Reload to show new media
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Lỗi', 'Không thể upload ảnh.');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể upload ảnh.',
+      });
     } finally {
       setIsUploading(false);
     }
@@ -140,9 +168,18 @@ export default function EditSettingScreen() {
         onPress: async () => {
           try {
             await SettingsService.removeMedia(Number(id), media.maMedia);
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+              text2: 'Đã xóa ảnh!',
+            });
             loadData();
           } catch (error) {
-            Alert.alert('Lỗi', 'Không thể xóa ảnh.');
+            Toast.show({
+              type: 'error',
+              text1: 'Lỗi',
+              text2: 'Không thể xóa ảnh.',
+            });
           }
         },
       },

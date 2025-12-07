@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { Plus, Search, Edit, Trash2, Tag, Package } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -54,7 +55,11 @@ export default function AdminCategoriesScreen() {
       const res = await axios.get(`${API_URL}/api/DanhMuc`);
       setCategories(res.data || []);
     } catch {
-      Alert.alert('Lỗi', 'Không thể tải danh sách danh mục');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Không thể tải danh sách danh mục',
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -78,7 +83,11 @@ export default function AdminCategoriesScreen() {
       const res = await axios.get(`${API_URL}/api/DanhMuc/search?keyword=${encodeURIComponent(searchQuery)}`);
       setCategories(res.data || []);
     } catch {
-      Alert.alert('Tìm kiếm thất bại', 'Không tìm thấy kết quả');
+      Toast.show({
+        type: 'error',
+        text1: 'Tìm kiếm thất bại',
+        text2: 'Không tìm thấy kết quả',
+      });
     }
   };
 
@@ -95,9 +104,17 @@ export default function AdminCategoriesScreen() {
             try {
               await axios.delete(`${API_URL}/api/DanhMuc/${id}`);
               setCategories(prev => prev.filter(c => c.maDanhMuc !== id));
-              Alert.alert('Thành công', 'Đã xóa danh mục!');
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Đã xóa danh mục!',
+              });
             } catch {
-              Alert.alert('Lỗi', 'Không thể xóa. Vui lòng thử lại.');
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Không thể xóa. Vui lòng thử lại.',
+              });
             }
           },
         },

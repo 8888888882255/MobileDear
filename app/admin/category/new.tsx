@@ -8,9 +8,9 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Image,
-  Alert,
   Platform,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 import { Upload, X, Check, Image as ImageIcon } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
@@ -42,7 +42,11 @@ export default function NewCategoryScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Cần quyền', 'Vui lòng cho phép truy cập thư viện ảnh');
+      Toast.show({
+        type: 'error',
+        text1: 'Cần quyền',
+        text2: 'Vui lòng cho phép truy cập thư viện ảnh',
+      });
       return;
     }
 
@@ -60,7 +64,11 @@ export default function NewCategoryScreen() {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      Alert.alert('Lỗi', 'Vui lòng nhập tên danh mục');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập tên danh mục',
+      });
       return;
     }
 
@@ -98,19 +106,30 @@ export default function NewCategoryScreen() {
       const result = await response.json();
 
       if (response.ok) {
-        Alert.alert('Thành công!', 'Tạo danh mục thành công!', [
-          { text: 'OK', onPress: () => router.back() }
-        ]);
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công!',
+          text2: 'Tạo danh mục thành công!',
+        });
+        router.back();
       } else {
         console.log('Server error:', result);
         const errorMsg = result.errors 
           ? Object.values(result.errors).flat().join(', ')
           : result.title || 'Lỗi không xác định';
-        Alert.alert('Tạo thất bại', errorMsg);
+        Toast.show({
+          type: 'error',
+          text1: 'Tạo thất bại',
+          text2: errorMsg,
+        });
       }
     } catch (err) {
       console.log('Network error:', err);
-      Alert.alert('Lỗi mạng', 'Không thể kết nối đến server');
+      Toast.show({
+        type: 'error',
+        text1: 'Lỗi mạng',
+        text2: 'Không thể kết nối đến server',
+      });
     } finally {
       setLoading(false);
     }
