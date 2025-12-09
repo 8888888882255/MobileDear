@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   Image,
   Platform
 } from 'react-native';
@@ -29,6 +28,7 @@ import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
+import { showDestructiveConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
 
@@ -87,36 +87,30 @@ export default function ProfileScreen() {
           setIsLoggingOut(false);
         });
     } else {
-      Alert.alert(
+      showDestructiveConfirm(
         "Đăng xuất",
         "Bạn có chắc chắn muốn đăng xuất?",
-        [
-          { text: "Hủy", style: "cancel" },
-          {
-            text: "Đăng xuất",
-            style: "destructive",
-            onPress: async () => {
-              setIsLoggingOut(true);
-              try {
-                await logout();
-                Toast.show({
-                  type: 'success',
-                  text1: 'Thành công',
-                  text2: 'Đã đăng xuất thành công!',
-                });
-              } catch (error) {
-                console.error('Profile - Logout error:', error);
-                Toast.show({
-                  type: 'error',
-                  text1: 'Lỗi',
-                  text2: 'Không thể đăng xuất. Vui lòng thử lại.',
-                });
-              } finally {
-                setIsLoggingOut(false);
-              }
-            }
+        "Đăng xuất",
+        async () => {
+          setIsLoggingOut(true);
+          try {
+            await logout();
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+              text2: 'Đã đăng xuất thành công!',
+            });
+          } catch (error) {
+            console.error('Profile - Logout error:', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Lỗi',
+              text2: 'Không thể đăng xuất. Vui lòng thử lại.',
+            });
+          } finally {
+            setIsLoggingOut(false);
           }
-        ]
+        }
       );
     }
   };

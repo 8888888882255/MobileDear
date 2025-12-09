@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator,
   SafeAreaView,
   RefreshControl,
@@ -32,6 +31,7 @@ import { GiaoDien, SETTING_TYPES } from '@/types';
 import { SettingsService } from '@/src/services/settingsService';
 import { Switch, TextInput } from 'react-native';
 import { Search } from 'lucide-react-native';
+import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
 
 type TabType = 'all' | 'logo' | 'banner' | 'slider';
 
@@ -162,33 +162,27 @@ export default function AdminSettingsScreen() {
   );
 
   const handleDelete = (item: GiaoDien) => {
-    Alert.alert(
+    showDestructiveConfirm(
       'Xác nhận xóa',
       `Bạn có chắc muốn xóa "${item.tenGiaoDien}"?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await SettingsService.delete(item.maGiaoDien);
-              Toast.show({
-                type: 'success',
-                text1: 'Thành công',
-                text2: 'Đã xóa thành công!'
-              });
-              loadData();
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Không thể xóa. Vui lòng thử lại.'
-              });
-            }
-          },
-        },
-      ]
+      'Xóa',
+      async () => {
+        try {
+          await SettingsService.delete(item.maGiaoDien);
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công',
+            text2: 'Đã xóa thành công!'
+          });
+          loadData();
+        } catch (error) {
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Không thể xóa. Vui lòng thử lại.'
+          });
+        }
+      }
     );
   };
 
@@ -212,25 +206,19 @@ export default function AdminSettingsScreen() {
         );
         
         if (otherActiveLogo) {
-          Alert.alert(
+          showConfirm(
             'Lưu ý', 
             `Logo "${otherActiveLogo.tenGiaoDien}" đang hoạt động. Việc kích hoạt logo này sẽ tự động tắt logo kia.`,
-            [
-              { text: 'Hủy', style: 'cancel' },
-              { 
-                text: 'Tiếp tục', 
-                onPress: async () => {
-                  // Optimistic update
-                  setAllItems(prev => prev.map(i => {
-                    if (i.maGiaoDien === item.maGiaoDien) return { ...i, trangThai: 1 };
-                    if (i.loaiGiaoDien === SETTING_TYPES.LOGO && i.trangThai === 1) return { ...i, trangThai: 0 };
-                    return i;
-                  }));
-                  await SettingsService.update(item.maGiaoDien, { ...item, trangThai: 1 });
-                  loadData(); // Reload to confirm state
-                }
-              }
-            ]
+            async () => {
+              // Optimistic update
+              setAllItems(prev => prev.map(i => {
+                if (i.maGiaoDien === item.maGiaoDien) return { ...i, trangThai: 1 };
+                if (i.loaiGiaoDien === SETTING_TYPES.LOGO && i.trangThai === 1) return { ...i, trangThai: 0 };
+                return i;
+              }));
+              await SettingsService.update(item.maGiaoDien, { ...item, trangThai: 1 });
+              loadData(); // Reload to confirm state
+            }
           );
           return;
         }
@@ -286,50 +274,41 @@ export default function AdminSettingsScreen() {
       action === 'activate' ? 'kích hoạt' : 
       action === 'deactivate' ? 'ẩn' : 'xóa';
 
-    Alert.alert(
+    showConfirm(
       'Xác nhận',
       `Bạn có chắc muốn ${actionText} ${selectedIds.size} mục đã chọn?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Đồng ý',
-          style: action === 'delete' ? 'destructive' : 'default',
-          onPress: async () => {
-            setIsProcessing(true);
-            try {
-              const ids = Array.from(selectedIds);
-              
-              if (action === 'delete') {
-                await Promise.all(ids.map(id => SettingsService.delete(id)));
-              } else {
-                const status = action === 'activate' ? 1 : 0;
-                // For activate logo, we should do it one by one or warn user, but for bulk let's just do it
-                // The backend will enforce single active anyway, so the last one processed wins
-                await Promise.all(ids.map(id => {
-                  const item = allItems.find(i => i.maGiaoDien === id);
-                  if (!item) return Promise.resolve();
-                  return SettingsService.update(id, { ...item, trangThai: status });
-                }));
-              }
-              
-              await loadData();
-              Toast.show({
-                type: 'success',
-                text1: 'Thành công',
-                text2: `Đã ${actionText} thành công!`
-              });
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Có lỗi xảy ra khi xử lý hàng loạt.'
-              });
-            } finally {
-              setIsProcessing(false);
-            }
-          },
-        },
-      ]
+      async () => {
+        setIsProcessing(true);
+        try {
+          const ids = Array.from(selectedIds);
+          
+          if (action === 'delete') {
+            await Promise.all(ids.map(id => SettingsService.delete(id)));
+          } else {
+            const status = action === 'activate' ? 1 : 0;
+            await Promise.all(ids.map(id => {
+              const item = allItems.find(i => i.maGiaoDien === id);
+              if (!item) return Promise.resolve();
+              return SettingsService.update(id, { ...item, trangThai: status });
+            }));
+          }
+          
+          await loadData();
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công',
+            text2: `Đã ${actionText} thành công!`
+          });
+        } catch (error) {
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Có lỗi xảy ra khi xử lý hàng loạt.'
+          });
+        } finally {
+          setIsProcessing(false);
+        }
+      }
     );
   };
 

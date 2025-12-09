@@ -7,7 +7,6 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   Image,
-  Alert,
   Modal,
   ScrollView
 } from 'react-native';
@@ -38,6 +37,7 @@ import colors from '@/constants/colors';
 import { User } from '@/types';
 import { AuthService } from '@/src/services/authService';
 import Constants from 'expo-constants';
+import { showConfirm, showDestructiveConfirm } from '@/src/utils/alert';
 
 
 
@@ -189,59 +189,53 @@ export default function AdminUsersScreen() {
     const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
     
-    Alert.alert(
+    showConfirm(
       targetUser.isAdmin ? "Remove Admin" : "Make Admin",
       `Are you sure you want to ${targetUser.isAdmin ? 'remove admin privileges from' : 'make'} ${targetUser.name} ${targetUser.isAdmin ? '' : 'an admin'}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Confirm", 
-          onPress: async () => {
-            setProcessingId(userId);
-            // Optimistic update
-            const updatedUsers = users.map(u => 
-              u.id === userId ? { ...u, isAdmin: !u.isAdmin } : u
-            );
-            setUsers(updatedUsers);
-            applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+      async () => {
+        setProcessingId(userId);
+        // Optimistic update
+        const updatedUsers = users.map(u => 
+          u.id === userId ? { ...u, isAdmin: !u.isAdmin } : u
+        );
+        setUsers(updatedUsers);
+        applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
 
-            try {
-              // Construct full update object to avoid validation errors
-              const updateData = {
-                MaNguoiDung: targetUser.rawData.maNguoiDung,
-                HoTen: targetUser.rawData.hoTen,
-                Email: targetUser.rawData.email,
-                Sdt: targetUser.rawData.sdt,
-                Avt: targetUser.rawData.avt,
-                GioiTinh: targetUser.rawData.gioiTinh,
-                NgaySinh: targetUser.rawData.ngaySinh,
-                TieuSu: targetUser.rawData.tieuSu,
-                TrangThai: targetUser.rawData.trangThai,
-                VaiTro: targetUser.isAdmin ? 0 : 1
-              };
-              
-              await AuthService.updateUserProfile(Number(userId), updateData);
-              Toast.show({
-                type: 'success',
-                text1: 'Success',
-                text2: `User ${targetUser.isAdmin ? 'removed from admin' : 'made admin'} successfully`
-              });
-            } catch (error) {
-              // Revert on error
-              console.error('Failed to update role, reverting', error);
-              setUsers(users);
-              applyFilters(searchQuery, filterRole, filterStatus, users);
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to update user role'
-              });
-            } finally {
-              setProcessingId(null);
-            }
-          }
+        try {
+          // Construct full update object to avoid validation errors
+          const updateData = {
+            MaNguoiDung: targetUser.rawData.maNguoiDung,
+            HoTen: targetUser.rawData.hoTen,
+            Email: targetUser.rawData.email,
+            Sdt: targetUser.rawData.sdt,
+            Avt: targetUser.rawData.avt,
+            GioiTinh: targetUser.rawData.gioiTinh,
+            NgaySinh: targetUser.rawData.ngaySinh,
+            TieuSu: targetUser.rawData.tieuSu,
+            TrangThai: targetUser.rawData.trangThai,
+            VaiTro: targetUser.isAdmin ? 0 : 1
+          };
+          
+          await AuthService.updateUserProfile(Number(userId), updateData);
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: `User ${targetUser.isAdmin ? 'removed from admin' : 'made admin'} successfully`
+          });
+        } catch (error) {
+          // Revert on error
+          console.error('Failed to update role, reverting', error);
+          setUsers(users);
+          applyFilters(searchQuery, filterRole, filterStatus, users);
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Failed to update user role'
+          });
+        } finally {
+          setProcessingId(null);
         }
-      ]
+      }
     );
   };
   
@@ -251,60 +245,53 @@ export default function AdminUsersScreen() {
     
     const isBanned = (targetUser as any).status === 'banned';
     
-    Alert.alert(
+    showConfirm(
       isBanned ? "Unban User" : "Ban User",
       `Are you sure you want to ${isBanned ? 'unban' : 'ban'} ${targetUser.name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Confirm", 
-          style: isBanned ? "default" : "destructive",
-          onPress: async () => {
-            setProcessingId(userId);
-            // Optimistic update
-            const updatedUsers = users.map(u => 
-              u.id === userId ? { ...u, status: isBanned ? 'active' : 'banned' } as any : u
-            );
-            setUsers(updatedUsers);
-            applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+      async () => {
+        setProcessingId(userId);
+        // Optimistic update
+        const updatedUsers = users.map(u => 
+          u.id === userId ? { ...u, status: isBanned ? 'active' : 'banned' } as any : u
+        );
+        setUsers(updatedUsers);
+        applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
 
-            try {
-              // Construct full update object to avoid validation errors
-              const updateData = {
-                MaNguoiDung: targetUser.rawData.maNguoiDung,
-                HoTen: targetUser.rawData.hoTen,
-                Email: targetUser.rawData.email,
-                Sdt: targetUser.rawData.sdt,
-                Avt: targetUser.rawData.avt,
-                GioiTinh: targetUser.rawData.gioiTinh,
-                NgaySinh: targetUser.rawData.ngaySinh,
-                TieuSu: targetUser.rawData.tieuSu,
-                VaiTro: targetUser.rawData.vaiTro,
-                TrangThai: isBanned ? 1 : 0
-              };
+        try {
+          // Construct full update object to avoid validation errors
+          const updateData = {
+            MaNguoiDung: targetUser.rawData.maNguoiDung,
+            HoTen: targetUser.rawData.hoTen,
+            Email: targetUser.rawData.email,
+            Sdt: targetUser.rawData.sdt,
+            Avt: targetUser.rawData.avt,
+            GioiTinh: targetUser.rawData.gioiTinh,
+            NgaySinh: targetUser.rawData.ngaySinh,
+            TieuSu: targetUser.rawData.tieuSu,
+            VaiTro: targetUser.rawData.vaiTro,
+            TrangThai: isBanned ? 1 : 0
+          };
 
-              await AuthService.updateUserProfile(Number(userId), updateData);
-              Toast.show({
-                type: 'success',
-                text1: 'Success',
-                text2: `User ${isBanned ? 'unbanned' : 'banned'} successfully`
-              });
-            } catch (error) {
-              // Revert on error
-              console.error('Failed to update status, reverting', error);
-              setUsers(users);
-              applyFilters(searchQuery, filterRole, filterStatus, users);
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to update user status'
-              });
-            } finally {
-              setProcessingId(null);
-            }
-          }
+          await AuthService.updateUserProfile(Number(userId), updateData);
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: `User ${isBanned ? 'unbanned' : 'banned'} successfully`
+          });
+        } catch (error) {
+          // Revert on error
+          console.error('Failed to update status, reverting', error);
+          setUsers(users);
+          applyFilters(searchQuery, filterRole, filterStatus, users);
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Failed to update user status'
+          });
+        } finally {
+          setProcessingId(null);
         }
-      ]
+      }
     );
   };
   
@@ -312,39 +299,33 @@ export default function AdminUsersScreen() {
     const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
     
-    Alert.alert(
+    showDestructiveConfirm(
       "Delete User",
       `Are you sure you want to permanently delete ${targetUser.name}? This action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive", 
-          onPress: async () => {
-            setProcessingId(userId);
-            try {
-              await AuthService.deleteUser(Number(userId));
-              // Update state locally
-              const updatedUsers = users.filter(u => u.id !== userId);
-              setUsers(updatedUsers);
-              applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
-              Toast.show({
-                type: 'success',
-                text1: 'Success',
-                text2: 'User deleted successfully'
-              });
-            } catch (error) {
-              Toast.show({
-                type: 'error',
-                text1: 'Error',
-                text2: 'Failed to delete user'
-              });
-            } finally {
-              setProcessingId(null);
-            }
-          } 
+      "Delete",
+      async () => {
+        setProcessingId(userId);
+        try {
+          await AuthService.deleteUser(Number(userId));
+          // Update state locally
+          const updatedUsers = users.filter(u => u.id !== userId);
+          setUsers(updatedUsers);
+          applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
+          Toast.show({
+            type: 'success',
+            text1: 'Success',
+            text2: 'User deleted successfully'
+          });
+        } catch (error) {
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'Failed to delete user'
+          });
+        } finally {
+          setProcessingId(null);
         }
-      ]
+      }
     );
   };
   

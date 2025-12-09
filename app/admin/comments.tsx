@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Image,
-  Alert,
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
@@ -21,6 +20,7 @@ import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
+import { showConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 const DEFAULT_AVATAR = require('@/assets/images/icon.png');
@@ -74,36 +74,30 @@ export default function AdminCommentsScreen() {
   }, []);
 
   const handleToggleStatus = async (id: number, currentStatus: number) => {
-    Alert.alert(
+    showConfirm(
       currentStatus === 1 ? 'Ẩn bình luận' : 'Hiện bình luận',
       'Bạn có chắc chắn muốn thay đổi trạng thái?',
-      [
-        { text: 'Hủy' },
-        {
-          text: 'Đồng ý',
-          onPress: async () => {
-            try {
-              await fetch(`${API_URL}/api/BinhLuan/${id}/trang-thai`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trangThai: currentStatus === 1 ? 0 : 1 }),
-              });
-              fetchComments();
-              Toast.show({
-                type: 'success',
-                text1: 'Thành công',
-                text2: 'Cập nhật trạng thái thành công!',
-              });
-            } catch {
-              Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Không thể cập nhật trạng thái',
-              });
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await fetch(`${API_URL}/api/BinhLuan/${id}/trang-thai`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trangThai: currentStatus === 1 ? 0 : 1 }),
+          });
+          fetchComments();
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công',
+            text2: 'Cập nhật trạng thái thành công!',
+          });
+        } catch {
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Không thể cập nhật trạng thái',
+          });
+        }
+      }
     );
   };
 

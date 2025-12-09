@@ -47,4 +47,38 @@ export const productApi = {
     if (!res.ok) throw new Error('Không tìm thấy sản phẩm');
     return res.json();
   },
+
+  // Xóa 1 hình ảnh
+  deleteImage: async (productId: number, mediaId: number, hardDelete = false) => {
+    const res = await fetch(
+      `${api.baseUrl}/api/SanPham/${productId}/images/${mediaId}?hardDelete=${hardDelete}`,
+      { method: 'DELETE' }
+    );
+    if (!res.ok) throw new Error('Không thể xóa hình ảnh');
+    return res.json();
+  },
+
+  // Xóa nhiều hình ảnh
+  deleteImagesBatch: async (productId: number, mediaIds: number[], hardDelete = false) => {
+    const res = await fetch(
+      `${api.baseUrl}/api/SanPham/${productId}/images/batch`,
+      {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mediaIds, hardDelete }),
+      }
+    );
+    if (!res.ok) throw new Error('Không thể xóa hình ảnh');
+    return res.json();
+  },
+
+  // Xóa sản phẩm
+  deleteProduct: async (productId: number, hardDeleteImages = false) => {
+    const res = await fetch(
+      `${api.baseUrl}/api/SanPham/${productId}?hardDeleteImages=${hardDeleteImages}`,
+      { method: 'DELETE' }
+    );
+    if (!res.ok) throw new Error('Không thể xóa sản phẩm');
+    return res.json();
+  },
 };

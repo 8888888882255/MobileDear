@@ -6,7 +6,6 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
   Image
 } from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -19,6 +18,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import { AuthService } from '@/src/services/authService';
 import Constants from 'expo-constants';
+import { showAlertWithButtons } from '@/src/utils/alert';
 
 export default function EditUserScreen() {
   const router = useRouter();
@@ -155,7 +155,7 @@ export default function EditUserScreen() {
   };
 
   const handleChangeAvatar = () => {
-    Alert.alert(
+    showAlertWithButtons(
       'Change Avatar',
       'Enter a new avatar URL',
       [

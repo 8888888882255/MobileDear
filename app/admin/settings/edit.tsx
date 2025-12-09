@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
-  Alert,
   ActivityIndicator,
   Image,
   Switch,
@@ -26,6 +25,7 @@ import Constants from 'expo-constants';
 import colors from '@/constants/colors';
 import { GiaoDien, GiaoDienEdit, Media, SETTING_TYPES } from '@/types';
 import { SettingsService } from '@/src/services/settingsService';
+import { showDestructiveConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
 
@@ -160,30 +160,23 @@ export default function EditSettingScreen() {
   const handleDeleteMedia = (media: Media) => {
     if (!id) return;
 
-    Alert.alert('Xác nhận', 'Bạn có chắc muốn xóa ảnh này?', [
-      { text: 'Hủy', style: 'cancel' },
-      {
-        text: 'Xóa',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await SettingsService.removeMedia(Number(id), media.maMedia);
-            Toast.show({
-              type: 'success',
-              text1: 'Thành công',
-              text2: 'Đã xóa ảnh!',
-            });
-            loadData();
-          } catch (error) {
-            Toast.show({
-              type: 'error',
-              text1: 'Lỗi',
-              text2: 'Không thể xóa ảnh.',
-            });
-          }
-        },
-      },
-    ]);
+    showDestructiveConfirm('Xác nhận', 'Bạn có chắc muốn xóa ảnh này?', 'Xóa', async () => {
+      try {
+        await SettingsService.removeMedia(Number(id), media.maMedia);
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công',
+          text2: 'Đã xóa ảnh!',
+        });
+        loadData();
+      } catch (error) {
+        Toast.show({
+          type: 'error',
+          text1: 'Lỗi',
+          text2: 'Không thể xóa ảnh.',
+        });
+      }
+    });
   };
 
   const getImageUrl = (path: string): string => {

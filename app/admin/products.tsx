@@ -11,6 +11,7 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,7 @@ import { Card } from '@/components/ui/Card';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
+import { productApi } from '../../src/services/productApi';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
@@ -148,33 +150,90 @@ export default function AdminProductsScreen() {
   };
 
   const handleDelete = (id: number) => {
+    // Web platform: use window.confirm with two-step process
+    if (Platform.OS === 'web') {
+      // Step 1: Confirm delete
+      const confirmDelete = window.confirm(
+        'Bạn có chắc chắn muốn xóa sản phẩm này không?'
+      );
+      
+      if (!confirmDelete) return; // User cancelled
+      
+      // Step 2: Ask about images
+      const hardDeleteImages = window.confirm(
+        'Bạn có muốn xóa cả file hình ảnh không?\n\n' +
+        'OK = Xóa cả hình ảnh\n' +
+        'Cancel = Chỉ xóa sản phẩm (giữ hình ảnh)'
+      );
+      
+      (async () => {
+        try {
+          await productApi.deleteProduct(id, hardDeleteImages);
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công',
+            text2: hardDeleteImages 
+              ? 'Đã xóa sản phẩm và hình ảnh' 
+              : 'Đã xóa sản phẩm (giữ hình ảnh)',
+          });
+          loadProducts();
+        } catch (err: any) {
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: err.message || 'Không thể xóa',
+          });
+        }
+      })();
+      
+      return;
+    }
+    
+    // Mobile platform: use Alert.alert
     Alert.alert(
       'Xóa sản phẩm',
-      'Bạn có chắc chắn muốn xóa sản phẩm này?',
+      'Bạn có muốn xóa cả file hình ảnh không?',
       [
         { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Xóa',
+          text: 'Giữ hình ảnh',
+          onPress: async () => {
+            try {
+              await productApi.deleteProduct(id, false);
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Đã xóa sản phẩm (giữ hình ảnh)',
+              });
+              loadProducts();
+            } catch (err: any) {
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: err.message || 'Không thể xóa',
+              });
+            }
+          },
+        },
+        {
+          text: 'Xóa cả hình ảnh',
           style: 'destructive',
           onPress: async () => {
-              try {
-                const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
-                  method: 'DELETE',
-                });
-                if (!res.ok) throw new Error('Xóa thất bại');
-                Toast.show({
-                  type: 'success',
-                  text1: 'Thành công',
-                  text2: 'Đã xóa sản phẩm',
-                });
-                loadProducts(); // Refresh danh sách
-              } catch (err: any) {
-                Toast.show({
-                  type: 'error',
-                  text1: 'Lỗi',
-                  text2: err.message || 'Không thể xóa',
-                });
-              }
+            try {
+              await productApi.deleteProduct(id, true);
+              Toast.show({
+                type: 'success',
+                text1: 'Thành công',
+                text2: 'Đã xóa sản phẩm và hình ảnh',
+              });
+              loadProducts();
+            } catch (err: any) {
+              Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: err.message || 'Không thể xóa',
+              });
+            }
           },
         },
       ]

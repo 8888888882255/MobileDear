@@ -22,6 +22,8 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
+import { productApi } from '@/src/services/productApi';
+import { showDestructiveConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
@@ -62,7 +64,7 @@ export default function EditProductScreen() {
 
   // Ảnh
   const [images, setImages] = useState<SelectedImage[]>([]);
-  const [deletedMediaIds, setDeletedMediaIds] = useState<number[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const gioiTinhMap: Record<string, number> = {
     'Phụ Nữ': 2,
@@ -185,8 +187,42 @@ export default function EditProductScreen() {
 
   const removeImage = (index: number) => {
     const img = images[index];
-    if (img.maMedia) setDeletedMediaIds(prev => [...prev, img.maMedia!]);
-    setImages(prev => prev.filter((_, i) => i !== index));
+    
+    // Nếu là ảnh cũ (có maMedia), cần xóa từ server
+    if (img.maMedia) {
+      showDestructiveConfirm(
+        'Xóa hình ảnh',
+        'Bạn có chắc muốn xóa hình ảnh này? Hành động này không thể hoàn tác.',
+        'Xóa',
+        async () => {
+          setIsDeleting(true);
+          try {
+            // Gọi API xóa ngay lập tức với hardDelete = true
+            await productApi.deleteImage(maSanPham, img.maMedia!, true);
+            
+            // Xóa khỏi danh sách hiển thị
+            setImages(prev => prev.filter((_, i) => i !== index));
+            
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+              text2: 'Đã xóa hình ảnh!'
+            });
+          } catch (error: any) {
+            Toast.show({
+              type: 'error',
+              text1: 'Lỗi',
+              text2: error.message || 'Không thể xóa hình ảnh'
+            });
+          } finally {
+            setIsDeleting(false);
+          }
+        }
+      );
+    } else {
+      // Ảnh mới chưa upload, xóa trực tiếp khỏi danh sách
+      setImages(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const validate = () => {
@@ -241,11 +277,6 @@ export default function EditProductScreen() {
         }
       }
     });
-
-    // Gửi danh sách ảnh cần xóa (nếu backend hỗ trợ)
-    if (deletedMediaIds.length > 0) {
-      formData.append('DeletedMediaIds', JSON.stringify(deletedMediaIds));
-    }
 
     try {
       const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
@@ -405,7 +436,11 @@ export default function EditProductScreen() {
             renderItem={({ item, index }) => (
               <View style={styles.imageWrapper}>
                 <Image source={{ uri: item.uri }} style={styles.previewImage} resizeMode="cover" />
-                <TouchableOpacity style={styles.removeBtn} onPress={() => removeImage(index)}>
+                <TouchableOpacity 
+                  style={styles.removeBtn} 
+                  onPress={() => removeImage(index)}
+                  disabled={isDeleting}
+                >
                   <Trash2 size={18} color="#fff" />
                 </TouchableOpacity>
               </View>

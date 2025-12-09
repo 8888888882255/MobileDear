@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-  Alert,
   SafeAreaView,
   Platform,
 } from 'react-native';
@@ -20,6 +19,7 @@ import colors from '@/constants/colors';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 import { useUserStore } from '@/store/user-store';
+import { showAlertWithButtons } from '@/src/utils/alert';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 
@@ -39,8 +39,8 @@ export default function ProductReviewScreen() {
   // Kiểm tra đăng nhập
   React.useEffect(() => {
     if (!user) {
-      Alert.alert('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để viết đánh giá', [
-        { text: 'Hủy' },
+      showAlertWithButtons('Yêu cầu đăng nhập', 'Vui lòng đăng nhập để viết đánh giá', [
+        { text: 'Hủy', style: 'cancel' },
         { text: 'Đăng nhập', onPress: () => router.push('/auth/login') }
       ]);
     }

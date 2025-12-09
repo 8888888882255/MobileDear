@@ -8,7 +8,6 @@ import {
   SafeAreaView,
   Image,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -18,6 +17,7 @@ import { Button } from '@/components/ui/Button';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
+import { showConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 const DEFAULT_AVATAR = require('@/assets/images/icon.png');
@@ -57,36 +57,30 @@ export default function CommentDetailScreen() {
   }, [id]);
 
   const handleToggleStatus = async () => {
-    Alert.alert(
+    showConfirm(
       comment.trangThai === 1 ? 'Ẩn bình luận' : 'Hiển thị bình luận',
       'Bạn có chắc chắn?',
-      [
-        { text: 'Hủy' },
-        {
-          text: 'Đồng ý',
-          onPress: async () => {
-            try {
-              await fetch(`${API_URL}/api/BinhLuan/${id}/trang-thai`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trangThai: comment.trangThai === 1 ? 0 : 1 }),
-              });
-              setComment({ ...comment, trangThai: comment.trangThai === 1 ? 0 : 1 });
-              Toast.show({
-                type: 'success',
-                text1: 'Thành công!',
-                text2: 'Đã cập nhật trạng thái',
-              });
-            } catch {
-              Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Không thể cập nhật',
-              });
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await fetch(`${API_URL}/api/BinhLuan/${id}/trang-thai`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trangThai: comment.trangThai === 1 ? 0 : 1 }),
+          });
+          setComment({ ...comment, trangThai: comment.trangThai === 1 ? 0 : 1 });
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công!',
+            text2: 'Đã cập nhật trạng thái',
+          });
+        } catch {
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Không thể cập nhật',
+          });
+        }
+      }
     );
   };
 

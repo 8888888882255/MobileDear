@@ -7,7 +7,6 @@ import {
   FlatList,
   TouchableOpacity,
   SafeAreaView,
-  Alert,
   RefreshControl,
   ActivityIndicator,
   Image,
@@ -22,6 +21,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { showDestructiveConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 
@@ -92,33 +92,27 @@ export default function AdminCategoriesScreen() {
   };
 
   const handleDelete = (id: number, name: string) => {
-    Alert.alert(
+    showDestructiveConfirm(
       'Xóa danh mục',
       `Bạn có chắc chắn muốn xóa "${name}"?`,
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await axios.delete(`${API_URL}/api/DanhMuc/${id}`);
-              setCategories(prev => prev.filter(c => c.maDanhMuc !== id));
-              Toast.show({
-                type: 'success',
-                text1: 'Thành công',
-                text2: 'Đã xóa danh mục!',
-              });
-            } catch {
-              Toast.show({
-                type: 'error',
-                text1: 'Lỗi',
-                text2: 'Không thể xóa. Vui lòng thử lại.',
-              });
-            }
-          },
-        },
-      ]
+      'Xóa',
+      async () => {
+        try {
+          await axios.delete(`${API_URL}/api/DanhMuc/${id}`);
+          setCategories(prev => prev.filter(c => c.maDanhMuc !== id));
+          Toast.show({
+            type: 'success',
+            text1: 'Thành công',
+            text2: 'Đã xóa danh mục!',
+          });
+        } catch {
+          Toast.show({
+            type: 'error',
+            text1: 'Lỗi',
+            text2: 'Không thể xóa. Vui lòng thử lại.',
+          });
+        }
+      }
     );
   };
 

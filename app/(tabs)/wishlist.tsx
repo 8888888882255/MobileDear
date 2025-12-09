@@ -6,7 +6,6 @@ import {
   FlatList,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
@@ -16,6 +15,7 @@ import { Heart } from 'lucide-react-native';
 import { ProductCard } from '@/components/ProductCard';
 import colors from '@/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showDestructiveConfirm } from '@/src/utils/alert';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 // Nếu chạy trên emulator Android thì localhost phải là 10.0.2.2
@@ -139,25 +139,19 @@ export default function WishlistScreen() {
   );
 
   const clearWishlist = () => {
-    Alert.alert(
+    showDestructiveConfirm(
       'Xóa toàn bộ',
       'Bạn có chắc muốn xóa tất cả sản phẩm khỏi danh sách yêu thích?',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Xóa hết',
-          style: 'destructive',
-          onPress: async () => {
-            await AsyncStorage.removeItem('wishlist');
-            setProducts([]);
-            Toast.show({
-              type: 'success',
-              text1: 'Thành công',
-              text2: 'Đã xóa toàn bộ danh sách yêu thích',
-            });
-          },
-        },
-      ]
+      'Xóa hết',
+      async () => {
+        await AsyncStorage.removeItem('wishlist');
+        setProducts([]);
+        Toast.show({
+          type: 'success',
+          text1: 'Thành công',
+          text2: 'Đã xóa toàn bộ danh sách yêu thích',
+        });
+      }
     );
   };
 
