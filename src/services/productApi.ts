@@ -1,4 +1,5 @@
 import { api } from '../config/api';
+import { AuthService } from './authService';
 
 export interface ProductFilterParams {
   page?: number;
@@ -50,9 +51,13 @@ export const productApi = {
 
   // Xóa 1 hình ảnh
   deleteImage: async (productId: number, mediaId: number, hardDelete = false) => {
+    const headers = await AuthService.getAuthHeaders();
     const res = await fetch(
       `${api.baseUrl}/api/SanPham/${productId}/images/${mediaId}?hardDelete=${hardDelete}`,
-      { method: 'DELETE' }
+      { 
+        method: 'DELETE',
+        headers
+      }
     );
     if (!res.ok) throw new Error('Không thể xóa hình ảnh');
     return res.json();
@@ -60,11 +65,15 @@ export const productApi = {
 
   // Xóa nhiều hình ảnh
   deleteImagesBatch: async (productId: number, mediaIds: number[], hardDelete = false) => {
+    const authHeaders = await AuthService.getAuthHeaders();
     const res = await fetch(
       `${api.baseUrl}/api/SanPham/${productId}/images/batch`,
       {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...authHeaders
+        },
         body: JSON.stringify({ mediaIds, hardDelete }),
       }
     );
@@ -74,9 +83,13 @@ export const productApi = {
 
   // Xóa sản phẩm
   deleteProduct: async (productId: number, hardDeleteImages = false) => {
+    const headers = await AuthService.getAuthHeaders();
     const res = await fetch(
       `${api.baseUrl}/api/SanPham/${productId}?hardDeleteImages=${hardDeleteImages}`,
-      { method: 'DELETE' }
+      { 
+        method: 'DELETE',
+        headers
+      }
     );
     if (!res.ok) throw new Error('Không thể xóa sản phẩm');
     return res.json();

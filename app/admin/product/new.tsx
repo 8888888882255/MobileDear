@@ -22,6 +22,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
+import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
@@ -231,10 +232,14 @@ export default function NewProductScreen() {
     });
 
     try {
+      const authHeaders = await AuthService.getAuthHeaders();
       const response = await fetch(`${API_URL}/api/SanPham`, {
         method: 'POST',
+        headers: {
+          ...authHeaders,
+          // Content-Type is set automatically for FormData
+        },
         body: formData,
-        // Không set headers → tự động thêm boundary đúng
       });
 
       if (!response.ok) {

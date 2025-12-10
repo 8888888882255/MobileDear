@@ -20,6 +20,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
+import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 
@@ -97,8 +98,12 @@ export default function NewCategoryScreen() {
     }
 
     try {
+      const authHeaders = await AuthService.getAuthHeaders();
       const response = await fetch(`${API_URL}/api/DanhMuc`, {
         method: 'POST',
+        headers: {
+          ...authHeaders,
+        },
         body: formData,
         // KHÔNG ĐƯỢC ĐẶT Content-Type – trình duyệt tự thêm boundary
       });

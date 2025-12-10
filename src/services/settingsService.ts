@@ -7,6 +7,7 @@ import {
   MediaCreate,
   SETTING_TYPES,
 } from '@/types';
+import { AuthService } from './authService';
 
 /**
  * Service for managing GiaoDien (Settings) - Logo, Banner, Slider
@@ -28,10 +29,13 @@ export class SettingsService {
     const url = `${this.getApiUrl()}${endpoint}`;
     console.log('SettingsService - Making request to:', url);
 
+    const authHeaders = await AuthService.getAuthHeaders();
+
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...authHeaders,
         ...options.headers,
       },
       ...options,
@@ -203,8 +207,14 @@ export class SettingsService {
     if (options?.altText) formData.append('altText', options.altText);
     if (options?.link) formData.append('link', options.link);
 
+    const authHeaders = await AuthService.getAuthHeaders();
+
     const response = await fetch(url, {
       method: 'POST',
+      headers: {
+        ...authHeaders,
+        // Content-Type is set automatically for FormData
+      },
       body: formData,
     });
 

@@ -22,6 +22,7 @@ import colors from '@/constants/colors';
 import axios from 'axios';
 import Constants from 'expo-constants';
 import { showDestructiveConfirm } from '@/src/utils/alert';
+import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 
@@ -98,7 +99,8 @@ export default function AdminCategoriesScreen() {
       'Xóa',
       async () => {
         try {
-          await axios.delete(`${API_URL}/api/DanhMuc/${id}`);
+          const headers = await AuthService.getAuthHeaders();
+          await axios.delete(`${API_URL}/api/DanhMuc/${id}`, { headers });
           setCategories(prev => prev.filter(c => c.maDanhMuc !== id));
           Toast.show({
             type: 'success',

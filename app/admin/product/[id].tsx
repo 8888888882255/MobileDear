@@ -24,6 +24,7 @@ import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 import { productApi } from '@/src/services/productApi';
 import { showDestructiveConfirm } from '@/src/utils/alert';
+import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
 
@@ -279,8 +280,12 @@ export default function EditProductScreen() {
     });
 
     try {
+      const authHeaders = await AuthService.getAuthHeaders();
       const res = await fetch(`${API_URL}/api/SanPham/${id}`, {
         method: 'PUT',
+        headers: {
+          ...authHeaders,
+        },
         body: formData,
       });
 
