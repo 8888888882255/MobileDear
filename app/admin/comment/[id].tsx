@@ -18,6 +18,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import { showConfirm } from '@/src/utils/alert';
+import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 const DEFAULT_AVATAR = require('@/assets/images/icon.png');
@@ -62,9 +63,13 @@ export default function CommentDetailScreen() {
       'Bạn có chắc chắn?',
       async () => {
         try {
+          const authHeaders = await AuthService.getAuthHeaders();
           await fetch(`${API_URL}/api/BinhLuan/${id}/trang-thai`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              ...authHeaders
+            },
             body: JSON.stringify({ trangThai: comment.trangThai === 1 ? 0 : 1 }),
           });
           setComment({ ...comment, trangThai: comment.trangThai === 1 ? 0 : 1 });

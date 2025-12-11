@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 import { useUserStore } from '@/store/user-store';
 import { showAlertWithButtons } from '@/src/utils/alert';
+import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
 
@@ -137,9 +138,12 @@ export default function ProductReviewScreen() {
       } as any);
     });
 
+    const authHeaders = await AuthService.getAuthHeaders();
+
     try {
       const response = await fetch(`${API_URL}/api/BinhLuan`, {
         method: 'POST',
+        headers: authHeaders,
         body: formData,
         // Không set Content-Type → trình duyệt tự thêm boundary
       });
