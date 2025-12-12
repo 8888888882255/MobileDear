@@ -190,54 +190,61 @@ export default function EditProfileScreen() {
 
     setIsSaving(true);
     try {
-      // If avatar is selected, upload with FormData directly
+      // If avatar is selected, we pass it to the service
+      // Otherwise validation is already done
+        
+      // Prepare user data for update
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || '',
+        bio: formData.bio || '',
+        gender: formData.gender || 0,
+        birthDate: formData.birthDate || ''
+      };
+
+      // Backend mapping is now handled inside AuthService or we should pass raw values if service expects them mapped?
+      // Checking AuthService again: it takes `updateData` and creates FormData from it.
+      // But AuthService expects keys to match Backend DTO if it just appends them directly?
+      // NO, `user-store` calls `AuthService.updateUserProfile` with PascalCase object.
+      // Let's check `user-store` implementation again or just do it here properly.
+      
+      // Let's reconstruct the object expected by backend (PascalCase) as per previous logic in this file
+      const backendData = {
+        MaNguoiDung: user!.id,
+        HoTen: formData.name,
+        Email: formData.email,
+        Sdt: formData.phone || '',
+        VaiTro: user!.isAdmin ? '1' : '0',
+        TrangThai: '1',
+        TieuSu: formData.bio || '',
+        GioiTinh: (formData.gender || 0).toString(),
+        NgaySinh: formData.birthDate || ''
+      };
+
+      // Handle image file selection
+      let imageFileToUpload = null;
       if (selectedAvatar) {
-        const token = await AuthService.getStoredToken();
-        const formDataToSend = new FormData();
-        
-        // Add profile data
-        formDataToSend.append('MaNguoiDung', user!.id);
-        formDataToSend.append('HoTen', formData.name);
-        formDataToSend.append('Email', formData.email);
-        formDataToSend.append('Sdt', formData.phone || '');
-        formDataToSend.append('VaiTro', user!.isAdmin ? '1' : '0');
-        formDataToSend.append('TrangThai', '1');
-        formDataToSend.append('TieuSu', formData.bio || '');
-        formDataToSend.append('GioiTinh', (formData.gender || 0).toString());
-        if (formData.birthDate) formDataToSend.append('NgaySinh', formData.birthDate);
-        
-        // Add avatar image
         if (Platform.OS === 'web' && selectedAvatar.file) {
-          formDataToSend.append('imageFile', selectedAvatar.file, selectedAvatar.name);
+          imageFileToUpload = selectedAvatar.file;
         } else {
-          formDataToSend.append('imageFile', {
+          imageFileToUpload = {
             uri: selectedAvatar.uri,
             name: selectedAvatar.name,
             type: selectedAvatar.type,
-          } as any);
+          };
         }
-        
-        const response = await fetch(`${API_URL}/api/NguoiDung/${user!.id}`, {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-          body: formDataToSend,
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || 'Cập nhật thất bại');
-        }
-        
-        // Refresh user profile to get new avatar
-        const { refreshUserProfile } = useUserStore.getState();
-        await refreshUserProfile();
-      } else {
-        // No avatar, use normal update
-        const success = await updateUserProfile(formData);
-        if (!success) throw new Error('Cập nhật thất bại');
       }
+
+      const response = await AuthService.updateUserProfile(
+        Number(user!.id), 
+        backendData, 
+        imageFileToUpload
+      );
+      
+      // Refresh user profile to get new avatar and data
+      const { refreshUserProfile } = useUserStore.getState();
+      await refreshUserProfile();
       
       Toast.show({
         type: 'success',

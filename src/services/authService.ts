@@ -246,11 +246,11 @@ export class AuthService {
 
   // Update user profile information
   // Backend expects [FromForm] so we need to send FormData
-  static async updateUserProfile(userId: number, updateData: any): Promise<any> {
+  static async updateUserProfile(userId: number, updateData: any, imageFile?: any): Promise<any> {
     const token = await this.getStoredToken();
     const url = `${this.getApiUrl()}/NguoiDung/${userId}`;
     
-    console.log('AuthService - Updating profile with FormData:', updateData);
+    console.log('AuthService - Updating profile:', { userId, ...updateData, hasImage: !!imageFile });
     
     // Create FormData for [FromForm] binding
     const formData = new FormData();
@@ -258,17 +258,36 @@ export class AuthService {
     // Append all fields to FormData
     Object.keys(updateData).forEach(key => {
       const value = updateData[key];
-      if (value !== null && value !== undefined && value !== '') {
+      if (value !== null && value !== undefined) {
         formData.append(key, value.toString());
       }
     });
+
+    // Handle image file
+    if (imageFile) {
+      if (typeof imageFile === 'string') {
+        // If it's just a path/url string, we might not need to do anything if backend doesn't handle string paths for upload
+        // specific logic for file object vs uri
+      } else if (imageFile.uri) {
+         // React Native / Expo ImagePicker result
+         // @ts-ignore
+         formData.append('imageFile', {
+           uri: imageFile.uri,
+           name: imageFile.name || 'avatar.jpg',
+           type: imageFile.type || 'image/jpeg',
+         });
+      } else if (typeof window !== 'undefined' && imageFile instanceof File) {
+        // Web File object
+        formData.append('imageFile', imageFile);
+      }
+    }
     
     try {
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
-          // Don't set Content-Type for FormData - browser will set it with boundary
+          // Don't set Content-Type for FormData - browser/native will set it with boundary
         },
         body: formData
       });

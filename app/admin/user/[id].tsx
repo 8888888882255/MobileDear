@@ -7,11 +7,12 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Image,
-  ActivityIndicator
+  ActivityIndicator,
+  Platform
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Camera, ChevronLeft } from 'lucide-react-native';
+import { Camera, ChevronLeft, Upload } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -19,7 +20,7 @@ import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 import { AuthService } from '@/src/services/authService';
 import Constants from 'expo-constants';
-import { showAlertWithButtons } from '@/src/utils/alert';
+import * as ImagePicker from 'expo-image-picker';
 
 const parseBackendError = (error: any): string => {
   try {
@@ -51,14 +52,13 @@ export default function EditUserScreen() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [originalUser, setOriginalUser] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<any>(null);
 
   React.useEffect(() => {
     if (!isAuthLoading && !currentUser?.isAdmin) {
       router.replace('/');
     }
   }, [currentUser, isAuthLoading]);
-
-
 
   React.useEffect(() => {
     fetchUserDetails();
@@ -82,7 +82,6 @@ export default function EditUserScreen() {
       
       setIsAdmin(data.vaiTro === 1);
     } catch (error) {
-      console.error('Error fetching user details:', error);
       console.error('Error fetching user details:', error);
       Toast.show({
         type: 'error',
@@ -124,6 +123,44 @@ export default function EditUserScreen() {
     return true;
   };
 
+  const pickImage = async () => {
+    if (Platform.OS === 'web') {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.onchange = (e: any) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          setSelectedImage(file);
+          setAvatar(URL.createObjectURL(file));
+        }
+      };
+      input.click();
+    } else {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Toast.show({
+          type: 'error',
+          text1: 'Quyền truy cập',
+          text2: 'Cần quyền truy cập thư viện ảnh để tải ảnh lên'
+        });
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled) {
+        setSelectedImage(result.assets[0]);
+        setAvatar(result.assets[0].uri);
+      }
+    }
+  };
+
   const handleSave = async () => {
     if (!validateForm()) return;
 
@@ -136,7 +173,9 @@ export default function EditUserScreen() {
         HoTen: name.trim(),
         Email: email.trim(),
         Sdt: phone.trim() || null,
-        Avt: avatar.trim() || null,
+        // If we have a new selected image, we don't send the Avt string field
+        // Otherwise, send existing avatar or null
+        Avt: selectedImage ? null : (avatar.trim() || null),
         VaiTro: isAdmin ? 1 : 0,
         // Preserve existing fields that are not in the form but required/important
         TrangThai: originalUser?.trangThai ?? 1,
@@ -145,14 +184,14 @@ export default function EditUserScreen() {
         TieuSu: originalUser?.tieuSu
       };
 
-      await AuthService.updateUserProfile(Number(id), updateModel);
+      await AuthService.updateUserProfile(Number(id), updateModel, selectedImage);
 
       Toast.show({
         type: 'success',
         text1: 'Thành công',
         text2: 'Cập nhật người dùng thành công!',
         onHide: () => {
-           router.back();
+           // router.back();
         }
       });
       // Fallback navigation if onHide doesn't trigger immediately or as expected in some envs
@@ -168,23 +207,6 @@ export default function EditUserScreen() {
     } finally {
       setIsSaving(false);
     }
-  };
-
-  const handleChangeAvatar = () => {
-    showAlertWithButtons(
-      'Đổi ảnh đại diện',
-      'Nhập URL ảnh đại diện mới',
-      [
-        { text: 'Hủy', style: 'cancel' },
-        {
-          text: 'Ảnh ngẫu nhiên',
-          onPress: () => {
-            const randomNum = Math.floor(Math.random() * 70) + 1;
-            setAvatar(`https://i.pravatar.cc/150?img=${randomNum}`);
-          }
-        }
-      ]
-    );
   };
 
   if (isAuthLoading) {
@@ -239,19 +261,19 @@ export default function EditUserScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.avatarButton}
-                  onPress={handleChangeAvatar}
+                  onPress={pickImage}
                 >
                   <Camera size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
 
-              <Input
-                label="URL Ảnh"
-                placeholder="https://example.com/avatar.jpg"
-                value={avatar}
-                onChangeText={setAvatar}
-                containerStyle={styles.avatarUrlInput}
-              />
+              <TouchableOpacity 
+                style={styles.uploadButton}
+                onPress={pickImage}
+              >
+                <Upload size={18} color={colors.primary} />
+                <Text style={styles.uploadButtonText}>Chọn ảnh từ thư viện</Text>
+              </TouchableOpacity>
             </View>
           </Card>
 
@@ -381,8 +403,18 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.card,
   },
-  avatarUrlInput: {
-    width: '100%',
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 8,
+    gap: 8,
+  },
+  uploadButtonText: {
+    color: colors.primary,
+    fontWeight: '500',
   },
   checkboxRow: {
     flexDirection: 'row',
