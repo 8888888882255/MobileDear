@@ -338,7 +338,7 @@ export default function HomeScreen() {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.storeName}>HoaiThu.Vn</Text>
+          <Text style={styles.storeName}>ThuHoai.Vn</Text>
         </View>
 
         <BannerCarousel banners={banners} />
