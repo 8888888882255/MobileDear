@@ -20,6 +20,8 @@ import Constants from 'expo-constants';
 import { BannerCarousel } from '@/components/BannerCarousel';
 import { ProductCard } from '@/components/ProductCard';
 import { CategoryCard } from '@/components/CategoryCard';
+import { ProductCardSkeleton } from '@/components/ui/Skeleton';
+import { useWindowDimensions } from 'react-native';
 import { banners as mockBanners } from '@/mocks/banners';
 import colors from '@/constants/colors';
 import { Category, Banner, GiaoDien, SETTING_TYPES } from '@/types';
@@ -292,18 +294,48 @@ export default function HomeScreen() {
   );
 
   const navigateToAllProducts = () => {
-    router.push('/search');
+    router.push('/(tabs)/search');
   };
 
   const navigateToAllCategories = () => {
-    router.push('/search?view=categories');
+    router.push('/(tabs)/search?view=categories');
   };
+
+  // Column calculation
+  const { width: windowWidth } = useWindowDimensions();
+  const getNumColumns = () => {
+    if (windowWidth > 1024) return 4;
+    if (windowWidth > 768) return 3;
+    return 2;
+  };
+  const numColumns = getNumColumns();
+  const cardWidth = (windowWidth - 48) / numColumns;
+  // Limit max width for desktop aesthetics
+  const finalCardWidth = windowWidth > 1200 ? ((1200 - 48) / 4) : cardWidth;
+  const containerStyle = windowWidth > 1200 ? { maxWidth: 1200, alignSelf: 'center', width: '100%' } : {};
+
+  const renderSkeletons = () => (
+    <View style={styles.productsGrid}>
+      {[1, 2, 3, 4].map((i) => (
+        <ProductCardSkeleton key={i} width={finalCardWidth} />
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, containerStyle as any]}
+        refreshControl={
+          <RefreshControl refreshing={false} onRefresh={() => {
+            loadBanners();
+            loadPromoBanner();
+            loadCategories();
+            loadNewestProducts();
+            loadHotSaleProducts();
+          }} />
+        }
       >
         <View style={styles.header}>
           <Text style={styles.storeName}>HoaiThu.Vn</Text>
@@ -371,13 +403,11 @@ export default function HomeScreen() {
           </View>
 
           {isLoadingNewest ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+            renderSkeletons()
           ) : newestProducts.length > 0 ? (
             <View style={styles.productsGrid}>
               {newestProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} width={finalCardWidth} />
               ))}
             </View>
           ) : (
@@ -400,13 +430,11 @@ export default function HomeScreen() {
           </View>
 
           {isLoadingHotSale ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
+             renderSkeletons()
           ) : hotSaleProducts.length > 0 ? (
             <View style={styles.productsGrid}>
               {hotSaleProducts.slice(0, 4).map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} width={finalCardWidth} />
               ))}
             </View>
           ) : (

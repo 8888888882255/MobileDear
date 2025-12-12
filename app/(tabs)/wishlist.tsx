@@ -13,7 +13,9 @@ import Constants from 'expo-constants';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Heart } from 'lucide-react-native';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductCardSkeleton } from '@/components/ui/Skeleton';
 import colors from '@/constants/colors';
+import { useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showDestructiveConfirm } from '@/src/utils/alert';
 
@@ -46,6 +48,19 @@ export default function WishlistScreen() {
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Column calculation
+  const { width: windowWidth } = useWindowDimensions();
+  const getNumColumns = () => {
+    if (windowWidth > 1024) return 4;
+    if (windowWidth > 768) return 3;
+    return 2;
+  };
+  const numColumns = getNumColumns();
+  const cardWidth = (windowWidth - 36) / numColumns; // 36 = 12 padding * 2 + 12 gap approx
+  // Limit max width
+  const finalCardWidth = windowWidth > 1200 ? ((1200 - 36) / 4) : cardWidth;
+  const containerStyle = windowWidth > 1200 ? { maxWidth: 1200, alignSelf: 'center', width: '100%' } : {};
 
   const fetchProductById = async (id: string): Promise<Product | null> => {
     try {
@@ -155,12 +170,24 @@ export default function WishlistScreen() {
     );
   };
 
+  const renderSkeletons = () => (
+    <View style={styles.skeletonGrid}>
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <View key={i} style={{ marginBottom: 12 }}>
+          <ProductCardSkeleton width={finalCardWidth} />
+        </View>
+      ))}
+    </View>
+  );
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Đang tải sản phẩm yêu thích...</Text>
+        <View style={styles.header}>
+            <Text style={styles.title}>Yêu thích</Text>
+        </View>
+        <View style={[styles.center, containerStyle as any]}>
+           {renderSkeletons()}
         </View>
       </SafeAreaView>
     );
@@ -196,11 +223,16 @@ export default function WishlistScreen() {
 
       <FlatList
         data={products}
-        renderItem={({ item }) => <ProductCard product={item as any} />}
+        renderItem={({ item }) => (
+            <View style={{ width: finalCardWidth, marginBottom: 12 }}>
+                <ProductCard product={item as any} width={finalCardWidth} />
+            </View>
+        )}
         keyExtractor={(item) => item.id}
-        numColumns={2}
+        numColumns={numColumns}
+        key={numColumns} // Re-render on column change
         columnWrapperStyle={styles.gridRow}
-        contentContainerStyle={styles.listContainer}
+        contentContainerStyle={[styles.listContainer, containerStyle as any]}
         showsVerticalScrollIndicator={false}
       />
     </SafeAreaView>
@@ -229,5 +261,11 @@ const styles = StyleSheet.create({
   emptyTitle: { marginTop: 20, fontSize: 20, fontWeight: 'bold', color: colors.text },
   emptySubtitle: { marginTop: 8, fontSize: 14, color: colors.textLight, textAlign: 'center' },
   exploreButton: { marginTop: 24, backgroundColor: colors.primary, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 8 },
+  skeletonGrid: {
+    padding: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
   exploreButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

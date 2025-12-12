@@ -244,7 +244,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}
-            onPress={() => router.replace('/')}
+            onPress={() => router.push('/(tabs)/')}
           >
             <View style={styles.menuItemLeft}>
               <Package size={20} color={colors.text} />

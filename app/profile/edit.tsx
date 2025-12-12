@@ -43,7 +43,7 @@ export default function EditProfileScreen() {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      router.replace('/(tabs)/profile');
+      router.replace('/profile');
     }
   };
 

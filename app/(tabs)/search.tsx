@@ -16,7 +16,9 @@ import { Search as SearchIcon, Grid, List, Filter } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import { Input } from '@/components/ui/Input';
 import { ProductCard } from '@/components/ProductCard';
+import { ProductCardSkeleton } from '@/components/ui/Skeleton';
 import colors from '@/constants/colors';
+import { useWindowDimensions } from 'react-native';
 
 type LayoutMode = 'grid' | 'list';
 
@@ -101,11 +103,11 @@ const filterProducts = async (params: ProductFilterParams = {}) => {
   }
 };
 
-const { width } = Dimensions.get('window');
+// const { width } = Dimensions.get('window'); // Removed static width
 const GAP = 16;
-
 export default function SearchScreen() {
   const params = useLocalSearchParams();
+  const { width: windowWidth } = useWindowDimensions();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('grid');
@@ -113,6 +115,42 @@ export default function SearchScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  
+  // Calculate dynamic columns
+  const getNumColumns = () => {
+    if (layoutMode === 'list') return 1;
+    if (windowWidth > 1024) return 4;
+    if (windowWidth > 768) return 3;
+    return 2;
+  };
+  const numColumns = getNumColumns();
+  
+  // Determine max width based on layout mode
+  const contentMaxWidth = 1200;
+
+  // Calculate card width
+  const getCardWidth = () => {
+    const effectiveContainerWidth = Math.min(windowWidth, contentMaxWidth);
+
+    if (layoutMode === 'list') {
+      return effectiveContainerWidth - (GAP * 2); // Full width minus padding
+    }
+    // Grid mode logic
+    // We strictly use (effectiveWidth - 48) / numColumns to ensure it fits in the centered container
+    return (effectiveContainerWidth - 48) / numColumns; 
+  };
+  
+  const itemWidth = getCardWidth();
+  const finalCardWidth = itemWidth;
+
+  const containerStyle = windowWidth > contentMaxWidth 
+    ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' } 
+    : { width: '100%' };
+
+  // Sync search bar with content
+  const searchContentStyle = windowWidth > contentMaxWidth 
+    ? { maxWidth: contentMaxWidth, alignSelf: 'center' as const, width: '100%' } 
+    : { width: '100%' };
 
   // Tải sản phẩm từ API
   const loadProducts = useCallback(async (query = '', page = 1) => {
@@ -206,11 +244,6 @@ export default function SearchScreen() {
 
   // Render 1 item sản phẩm
   const renderProductItem = ({ item }: { item: ApiProduct }) => {
-    const itemWidth =
-      layoutMode === 'grid'
-        ? (width - GAP * 3) / 2
-        : width - GAP * 2;
-
     // Convert API product format to ProductCard format
     const displayProduct = {
       id: String(item.maSanPham),
@@ -239,9 +272,22 @@ export default function SearchScreen() {
       tags: [],
     };
 
+    const isList = layoutMode === 'list';
+    // Container width is just '100%' of the (potentially constrained) parent column/list
+    // or specific width if grid. 
+    // Actually, simply using finalCardWidth for grid and '100%' for list is safest.
+    const containerWidth = isList ? '100%' : finalCardWidth;
+    
     return (
-      <View style={{ width: itemWidth, marginBottom: GAP }}>
-        <ProductCard product={displayProduct} width={itemWidth} />
+      <View style={{ 
+        width: containerWidth, 
+        marginBottom: GAP,
+      }}>
+        <ProductCard 
+          product={displayProduct} 
+          width={finalCardWidth} 
+          variant={layoutMode}
+        />
       </View>
     );
   };
@@ -256,9 +302,23 @@ export default function SearchScreen() {
     );
   };
 
+  const renderSkeletons = () => (
+    <View style={styles.productsGrid}>
+      {[1, 2, 3, 4, 5, 6].map((i) => (
+        <ProductCardSkeleton key={i} width={finalCardWidth} />
+      ))}
+    </View>
+  );
+
+  const renderListHeader = () => (
+    <Text style={styles.resultsText}>
+      Đã tìm thấy {filteredProducts.length} sản phẩm
+    </Text>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, searchContentStyle as any]}>
         <Input
           placeholder="Tìm kiếm..."
           value={searchQuery}
@@ -285,22 +345,17 @@ export default function SearchScreen() {
 
       {isLoading && currentPage === 1 ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
+           {renderSkeletons()}
         </View>
       ) : (
         <>
-          <Text style={styles.resultsText}>
-            Đã tìm thấy {filteredProducts.length} sản phẩm
-          </Text>
-
           <FlatList
             data={filteredProducts}
             renderItem={renderProductItem}
             keyExtractor={item => String(item.maSanPham)}
-            numColumns={layoutMode === 'grid' ? 2 : 1}
-            key={layoutMode}
-            contentContainerStyle={styles.listContent}
+            numColumns={numColumns}
+            key={layoutMode + numColumns} // Force re-render on layout/column change
+            contentContainerStyle={[styles.listContent, containerStyle as any]}
             columnWrapperStyle={
               layoutMode === 'grid'
                 ? styles.column
@@ -309,6 +364,7 @@ export default function SearchScreen() {
             showsVerticalScrollIndicator={false}
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
+            ListHeaderComponent={renderListHeader}
             ListFooterComponent={renderFooter}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
@@ -382,6 +438,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     marginBottom: 8,
+  },
+  productsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
   },
   emptySubtext: { fontSize: 14, color: colors.textLight },
 });

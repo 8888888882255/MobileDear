@@ -33,7 +33,7 @@ export default function ChangePasswordScreen() {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      router.replace('/(tabs)/profile');
+      router.replace('/profile');
     }
   };
 

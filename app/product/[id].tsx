@@ -24,7 +24,9 @@ import {
   ChevronLeft,
   ShoppingBag,
   MessageSquare,
+  PackageX,
 } from 'lucide-react-native';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Button } from '@/components/ui/Button';
 import { useCartStore } from '@/store/cart-store';
 import { useWishlistStore } from '@/store/wishlist-store';
@@ -61,7 +63,7 @@ export default function ProductDetailScreen() {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      router.replace('/(tabs)/');
+      router.replace('/');
     }
   };
 
@@ -141,23 +143,42 @@ export default function ProductDetailScreen() {
 
   const isWishlisted = product ? isInWishlist(product.id) : false;
 
-  if (loadingProduct) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Đang tải sản phẩm...</Text>
+  const renderSkeleton = () => (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Skeleton width="100%" height={SCREEN_WIDTH * 1.2} borderRadius={0} />
+        <View style={styles.thumbnailContainer}>
+          {[1, 2, 3, 4].map((i) => (
+             <Skeleton key={i} width={60} height={60} borderRadius={8} style={{ marginRight: 8 }} />
+          ))}
         </View>
-      </SafeAreaView>
-    );
+        <View style={styles.infoContainer}>
+          <Skeleton width="50%" height={16} style={{ marginBottom: 8 }} />
+          <Skeleton width="80%" height={24} style={{ marginBottom: 12 }} />
+          <Skeleton width="40%" height={16} style={{ marginBottom: 16 }} />
+          <Skeleton width="30%" height={24} style={{ marginBottom: 20 }} />
+          <Skeleton width="90%" height={16} style={{ marginBottom: 8 }} />
+          <Skeleton width="90%" height={16} style={{ marginBottom: 8 }} />
+          <Skeleton width="70%" height={16} style={{ marginBottom: 8 }} />
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+
+  if (loadingProduct) {
+    return renderSkeleton();
   }
 
   if (!product) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
+          <View style={styles.notFoundIconContainer}>
+             <PackageX size={64} color={colors.textLight} />
+          </View>
           <Text style={styles.notFoundText}>Không tìm thấy sản phẩm</Text>
-          <Button title="Quay lại" onPress={handleBack} />
+          <Text style={styles.notFoundSubtext}>Sản phẩm này có thể đã bị xóa hoặc không tồn tại.</Text>
+          <Button title="Quay lại trang chủ" onPress={handleBack} style={{ marginTop: 20 }} />
         </View>
       </SafeAreaView>
     );
@@ -193,83 +214,119 @@ export default function ProductDetailScreen() {
     return date.toLocaleDateString('vi-VN');
   };
 
+  // Responsive layout calculation
+  const isDesktop = SCREEN_WIDTH > 768;
+  const containerStyle = isDesktop ? { flexDirection: 'row', maxWidth: 1200, alignSelf: 'center', width: '100%', gap: 40, padding: 32 } : { flexDirection: 'column' };
+  const leftColumnStyle = isDesktop ? { flex: 1.5 } : { width: '100%' };
+  const rightColumnStyle = isDesktop ? { flex: 1 } : { padding: 16 };
+  const imageStyle = isDesktop ? { width: '100%', height: 500, borderRadius: 12 } : { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.2 };
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Ảnh sản phẩm - giữ nguyên đẹp */}
-        <View style={[styles.imageContainer, { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.2 }]}>
-          <Image source={{ uri: product.images[selectedImage] || 'https://via.placeholder.com/400' }} style={styles.mainImage} />
-          <TouchableOpacity style={[styles.imageNavButton, styles.prevButton]} onPress={() => setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length)}>
-            <ChevronLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.imageNavButton, styles.nextButton]} onPress={() => setSelectedImage((prev) => (prev + 1) % product.images.length)}>
-            <ChevronRight size={24} color="#fff" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.wishlistButton} onPress={handleToggleWishlist}>
-            <Heart size={24} color={isWishlisted ? colors.error : '#fff'} fill={isWishlisted ? colors.error : 'none'} />
-          </TouchableOpacity>
-        </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={isDesktop ? { flexGrow: 1, justifyContent: 'center' } : {}}>
+        
+        <View style={containerStyle as any}>
+          {/* Left Column: Images */}
+          <View style={leftColumnStyle as any}>
+            <View style={[styles.imageContainer, imageStyle as any]}>
+              <Image source={{ uri: product.images[selectedImage] || 'https://via.placeholder.com/400' }} style={styles.mainImage} resizeMode={isDesktop ? 'contain' : 'cover'} />
+              <TouchableOpacity style={[styles.imageNavButton, styles.prevButton]} onPress={() => setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length)}>
+                <ChevronLeft size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.imageNavButton, styles.nextButton]} onPress={() => setSelectedImage((prev) => (prev + 1) % product.images.length)}>
+                <ChevronRight size={24} color="#fff" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.wishlistButton} onPress={handleToggleWishlist}>
+                <Heart size={24} color={isWishlisted ? colors.error : '#fff'} fill={isWishlisted ? colors.error : 'none'} />
+              </TouchableOpacity>
+            </View>
 
-        <View style={styles.thumbnailContainer}>
-          {product.images.map((img, i) => (
-            <TouchableOpacity key={i} onPress={() => setSelectedImage(i)} style={[styles.thumbnailButton, selectedImage === i && styles.selectedThumbnail]}>
-              <Image source={{ uri: img }} style={styles.thumbnail} />
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.infoContainer}>
-          <Text style={styles.category}>{product.category} • {product.subcategory}</Text>
-          <Text style={styles.name}>{product.name}</Text>
-
-          <View style={styles.ratingContainer}>
-            <View style={styles.starsContainer}>
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} size={16} color={s <= Math.round(product.rating) ? colors.primary : colors.border} fill={s <= Math.round(product.rating) ? colors.primary : 'none'} />
+            <View style={styles.thumbnailContainer}>
+              {product.images.map((img, i) => (
+                <TouchableOpacity key={i} onPress={() => setSelectedImage(i)} style={[styles.thumbnailButton, selectedImage === i && styles.selectedThumbnail]}>
+                  <Image source={{ uri: img }} style={styles.thumbnail} />
+                </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.ratingText}>
-              {product.rating.toFixed(1)} ({product.reviewCount} đánh giá)
-            </Text>
+
+             {/* Reviews on Desktop can go full width below or stay in left column? Let's keep in flow for now or move below columns if parent permits. 
+                 For side-by-side, usually reviews are at bottom full width.
+                 But for simplicity in this View structure, let's put reviews below the "columns" wrapper if we want full width. 
+                 For now, let's put Reviews in the Left Column for Desktop to balance height, or a separate section below.
+                 Let's keep it simple: Render Reviews AFTER the main flex-row container for Desktop. 
+             */}
           </View>
 
-          {/* Giá - giữ nguyên */}
-          <View style={styles.priceContainer}>
-            {product.discountPrice ? (
-              <>
-                <Text style={styles.discountPrice}>{product.discountPrice.toLocaleString('vi-VN')}₫</Text>
-                <Text style={styles.originalPrice}>{product.price.toLocaleString('vi-VN')}₫</Text>
-                <View style={styles.discountBadge}>
-                  <Text style={styles.discountText}>-{Math.round((1 - product.discountPrice / product.price) * 100)}%</Text>
+          {/* Right Column: Info */}
+          <View style={rightColumnStyle as any}>
+            <Text style={styles.category}>{product.category} • {product.subcategory}</Text>
+            <Text style={[styles.name, isDesktop && { fontSize: 32 }]}>{product.name}</Text>
+
+            <View style={styles.ratingContainer}>
+              <View style={styles.starsContainer}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star key={s} size={16} color={s <= Math.round(product.rating) ? colors.primary : colors.border} fill={s <= Math.round(product.rating) ? colors.primary : 'none'} />
+                ))}
+              </View>
+              <Text style={styles.ratingText}>
+                {product.rating.toFixed(1)} ({product.reviewCount} đánh giá)
+              </Text>
+            </View>
+
+            <View style={styles.priceContainer}>
+              {product.discountPrice ? (
+                <>
+                  <Text style={[styles.discountPrice, isDesktop && { fontSize: 28 }]}>{product.discountPrice.toLocaleString('vi-VN')}₫</Text>
+                  <Text style={styles.originalPrice}>{product.price.toLocaleString('vi-VN')}₫</Text>
+                  <View style={styles.discountBadge}>
+                    <Text style={styles.discountText}>-{Math.round((1 - product.discountPrice / product.price) * 100)}%</Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={[styles.price, isDesktop && { fontSize: 28 }]}>{product.price.toLocaleString('vi-VN')}₫</Text>
+              )}
+            </View>
+
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Số lượng</Text>
+              <View style={styles.quantityContainer}>
+                <TouchableOpacity style={styles.quantityButton} onPress={() => quantity > 1 && setQuantity(q => q - 1)} disabled={quantity <= 1}>
+                  <Text style={styles.quantityButtonText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{quantity}</Text>
+                <TouchableOpacity style={styles.quantityButton} onPress={() => quantity < product.stock && setQuantity(q => q + 1)} disabled={quantity >= product.stock}>
+                  <Text style={styles.quantityButtonText}>+</Text>
+                </TouchableOpacity>
+                <Text style={styles.stockText}>Còn {product.stock} sản phẩm</Text>
+              </View>
+            </View>
+
+             {/* Add to Cart Actions (Inline for Desktop) */}
+             <View style={[styles.actionContainer, isDesktop && { marginTop: 24, padding: 0, borderTopWidth: 0 }]}>
+                <View style={styles.priceBottomContainer}>
+                  <Text style={styles.priceBottomLabel}>Tạm tính</Text>
+                  <Text style={styles.priceBottomValue}>
+                    {((product.discountPrice || product.price) * quantity).toLocaleString('vi-VN')}₫
+                  </Text>
                 </View>
-              </>
-            ) : (
-              <Text style={styles.price}>{product.price.toLocaleString('vi-VN')}₫</Text>
-            )}
-          </View>
+                <Button
+                  title="Thêm vào giỏ"
+                  onPress={handleAddToCart}
+                  loading={isAddingToCart}
+                  icon={<ShoppingBag size={20} color="#fff" />}
+                  style={styles.addToCartButton}
+                />
+             </View>
 
-          {/* Số lượng */}
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Số lượng</Text>
-            <View style={styles.quantityContainer}>
-              <TouchableOpacity style={styles.quantityButton} onPress={() => quantity > 1 && setQuantity(q => q - 1)} disabled={quantity <= 1}>
-                <Text style={styles.quantityButtonText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.quantityText}>{quantity}</Text>
-              <TouchableOpacity style={styles.quantityButton} onPress={() => quantity < product.stock && setQuantity(q => q + 1)} disabled={quantity >= product.stock}>
-                <Text style={styles.quantityButtonText}>+</Text>
-              </TouchableOpacity>
-              <Text style={styles.stockText}>Còn {product.stock} sản phẩm</Text>
+            <View style={[styles.sectionContainer, { marginTop: 32 }]}>
+              <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
+              <Text style={styles.description}>{product.description}</Text>
             </View>
           </View>
-
-          <View style={styles.sectionContainer}>
-            <Text style={styles.sectionTitle}>Mô tả sản phẩm</Text>
-            <Text style={styles.description}>{product.description}</Text>
-          </View>
-
-          {/* ĐÁNH GIÁ THẬT TỪ BACKEND */}
-          <View style={styles.reviewsContainer}>
+        </View>
+        
+        {/* Reviews Section - Full Width on Desktop */}
+        <View style={[styles.reviewsContainer, isDesktop && { maxWidth: 1200, alignSelf: 'center', width: '100%', paddingHorizontal: 32 }]}>
             <View style={styles.reviewsHeader}>
               <Text style={styles.reviewsTitle}>Đánh giá từ khách hàng</Text>
               <TouchableOpacity style={styles.writeReviewButton} onPress={handleWriteReview}>
@@ -315,26 +372,28 @@ export default function ProductDetailScreen() {
             ) : (
               <Text style={styles.noReviewsText}>Chưa có đánh giá nào</Text>
             )}
-          </View>
         </View>
+
       </ScrollView>
 
-      {/* Thanh dưới */}
-      <View style={styles.bottomBar}>
-        <View style={styles.priceBottomContainer}>
-          <Text style={styles.priceBottomLabel}>Tạm tính</Text>
-          <Text style={styles.priceBottomValue}>
-            {((product.discountPrice || product.price) * quantity).toLocaleString('vi-VN')}₫
-          </Text>
+      {/* Mobile Bottom Bar - Hide on Desktop */}
+      {!isDesktop && (
+        <View style={styles.bottomBar}>
+          <View style={styles.priceBottomContainer}>
+            <Text style={styles.priceBottomLabel}>Tạm tính</Text>
+            <Text style={styles.priceBottomValue}>
+              {((product.discountPrice || product.price) * quantity).toLocaleString('vi-VN')}₫
+            </Text>
+          </View>
+          <Button
+            title="Thêm vào giỏ"
+            onPress={handleAddToCart}
+            loading={isAddingToCart}
+            icon={<ShoppingBag size={20} color="#fff" />}
+            style={styles.addToCartButton}
+          />
         </View>
-        <Button
-          title="Thêm vào giỏ"
-          onPress={handleAddToCart}
-          loading={isAddingToCart}
-          icon={<ShoppingBag size={20} color="#fff" />}
-          style={styles.addToCartButton}
-        />
-      </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -342,22 +401,24 @@ export default function ProductDetailScreen() {
 // Thêm styles cho phần đánh giá
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { marginTop: 12, fontSize: 16, color: colors.textLight },
-  notFoundText: { fontSize: 18, marginBottom: 20, color: colors.text },
-  imageContainer: { position: 'relative' },
+  notFoundIconContainer: { marginBottom: 16, opacity: 0.5 },
+  notFoundText: { fontSize: 20, fontWeight: 'bold', marginBottom: 8, color: colors.text },
+  notFoundSubtext: { fontSize: 14, color: colors.textLight, textAlign: 'center', marginBottom: 20 },
+  imageContainer: { position: 'relative', overflow: 'hidden' },
   mainImage: { width: '100%', height: '100%' },
   imageNavButton: { position: 'absolute', top: '50%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -20 }] },
   prevButton: { left: 10 },
   nextButton: { right: 10 },
   wishlistButton: { position: 'absolute', top: 15, right: 15, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },
-  thumbnailContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff' },
-  thumbnailButton: { width: 60, height: 60, borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#e0e0e0', overflow: 'hidden' },
+  thumbnailContainer: { flexDirection: 'row', padding: 10, backgroundColor: '#fff', flexWrap: 'wrap' },
+  thumbnailButton: { width: 60, height: 60, borderRadius: 8, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#e0e0e0', overflow: 'hidden' },
   selectedThumbnail: { borderColor: colors.primary, borderWidth: 2 },
   thumbnail: { width: '100%', height: '100%' },
-  infoContainer: { padding: 16 },
+  infoContainer: { padding: 16 }, // Kept for reference but not used in split layout directly
   category: { fontSize: 14, color: colors.textLight, marginBottom: 4 },
-  name: { fontSize: 24, fontWeight: 'bold', marginBottom: 8 },
+  name: { fontSize: 24, fontWeight: 'bold', marginBottom: 8, color: colors.text },
   ratingContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   starsContainer: { flexDirection: 'row', marginRight: 8 },
   ratingText: { fontSize: 14, color: colors.textLight },
@@ -368,28 +429,38 @@ const styles = StyleSheet.create({
   discountBadge: { backgroundColor: colors.primary, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, marginLeft: 8 },
   discountText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
   sectionContainer: { marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12, color: colors.text },
   quantityContainer: { flexDirection: 'row', alignItems: 'center' },
   quantityButton: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: colors.border, justifyContent: 'center', alignItems: 'center' },
-  quantityButtonText: { fontSize: 18, fontWeight: 'bold' },
-  quantityText: { fontSize: 16, marginHorizontal: 16, fontWeight: 'bold' },
+  quantityButtonText: { fontSize: 18, fontWeight: 'bold', color: colors.text },
+  quantityText: { fontSize: 16, marginHorizontal: 16, fontWeight: 'bold', color: colors.text },
   stockText: { fontSize: 14, color: colors.textLight, marginLeft: 16 },
   description: { fontSize: 16, lineHeight: 24, color: colors.text },
-  reviewsContainer: { marginTop: 20, paddingTop: 20, borderTopWidth: 8, borderTopColor: '#f5f5f5' },
+  reviewsContainer: { marginTop: 20, paddingTop: 20, borderTopWidth: 8, borderTopColor: '#f5f5f5', paddingHorizontal: 16 },
   reviewsHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  reviewsTitle: { fontSize: 18, fontWeight: 'bold' },
+  reviewsTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
   writeReviewButton: { flexDirection: 'row', alignItems: 'center' },
   writeReviewText: { marginLeft: 6, color: colors.primary, fontWeight: '600' },
   reviewItem: { marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#eee' },
   reviewHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   reviewerAvatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-  reviewerName: { fontSize: 15, fontWeight: '600' },
+  reviewerName: { fontSize: 15, fontWeight: '600', color: colors.text },
   reviewDate: { fontSize: 12, color: colors.textLight, marginLeft: 'auto' },
-  reviewTitle: { fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  reviewTitle: { fontSize: 15, fontWeight: '600', marginBottom: 4, color: colors.text },
   reviewComment: { fontSize: 14, color: colors.text, lineHeight: 20, marginBottom: 12 },
   reviewImages: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   reviewImage: { width: 80, height: 80, borderRadius: 8 },
   noReviewsText: { fontSize: 15, color: colors.textLight, textAlign: 'center', paddingVertical: 30, fontStyle: 'italic' },
+  
+  // Action Container for Desktop
+  actionContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16
+  },
+  
+  // Mobile Bottom Bar
   bottomBar: { flexDirection: 'row', padding: 16, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: '#fff' },
   priceBottomContainer: { flex: 1, justifyContent: 'center' },
   priceBottomLabel: { fontSize: 14, color: colors.textLight },
