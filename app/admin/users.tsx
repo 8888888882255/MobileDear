@@ -42,6 +42,35 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
   type RoleFilter = 'all' | 'admin' | 'user';
   type StatusFilter = 'all' | 'active' | 'banned';
 
+  const parseBackendError = (error: any): string => {
+    try {
+      // If error is an Error object, get the message
+      let messageToCheck = error?.message || String(error);
+      
+      // Sometimes the error message string itself contains "Error: " prefix
+      if (messageToCheck.startsWith('Error: ')) {
+        messageToCheck = messageToCheck.replace('Error: ', '');
+      }
+
+      // Try to parse as JSON
+      const parsed = JSON.parse(messageToCheck);
+      
+      // Return detail if exists (most specific)
+      if (parsed.detail) return parsed.detail;
+      // Return message if exists
+      if (parsed.message) return parsed.message;
+      // Return title if exists
+      if (parsed.title) return parsed.title;
+      
+      return messageToCheck;
+    } catch (e) {
+      // If parsing fails, return the original string representation
+      // Clean up "Error: " prefix if present for cleaner display
+      const msg = error?.message || String(error);
+      return msg.replace(/^Error:\s*/, '');
+    }
+  };
+
   export default function AdminUsersScreen() {
   const router = useRouter();
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
@@ -202,10 +231,12 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
         setAllItems(prev => prev.map(i => 
             i.id === item.id ? { ...i, status: item.status } : i
         ));
+        
+        const errorMessage = parseBackendError(error);
         Toast.show({
             type: 'error',
             text1: 'Lỗi',
-            text2: 'Không thể cập nhật trạng thái.'
+            text2: errorMessage
         });
     }
   };
@@ -292,10 +323,11 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
             setIsSelectionMode(false);
             setSelectedIds(new Set());
         } catch (error) {
+            const errorMessage = parseBackendError(error);
             Toast.show({
                 type: 'error',
                 text1: 'Lỗi',
-                text2: 'Có lỗi xảy ra khi xử lý hàng loạt.'
+                text2: errorMessage
             });
         } finally {
             setIsProcessing(false);
@@ -738,7 +770,6 @@ const styles = StyleSheet.create({
   },
   cardImageContainer: {
     width: 80,
-    height: '100%',
     minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',

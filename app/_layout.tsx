@@ -200,6 +200,26 @@ function RootLayoutNav() {
           headerShown: false,
         }}
       />
+      
+      {/* Admin Route Config */}
+      <Stack.Screen
+          name="admin/users"
+          options={{
+            headerShown: false,
+          }}
+      />
+      <Stack.Screen
+          name="admin/user/create"
+          options={{
+              headerShown: false,
+          }}
+      />
+      <Stack.Screen
+          name="admin/user/[id]"
+          options={{
+              headerShown: false,
+          }}
+      />
     </Stack>
   );
 }

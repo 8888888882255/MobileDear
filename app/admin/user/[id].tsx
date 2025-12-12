@@ -20,6 +20,23 @@ import { AuthService } from '@/src/services/authService';
 import Constants from 'expo-constants';
 import { showAlertWithButtons } from '@/src/utils/alert';
 
+const parseBackendError = (error: any): string => {
+  try {
+    let messageToCheck = error?.message || String(error);
+    if (messageToCheck.startsWith('Error: ')) {
+      messageToCheck = messageToCheck.replace('Error: ', '');
+    }
+    const parsed = JSON.parse(messageToCheck);
+    if (parsed.detail) return parsed.detail;
+    if (parsed.message) return parsed.message;
+    if (parsed.title) return parsed.title;
+    return messageToCheck;
+  } catch (e) {
+    const msg = error?.message || String(error);
+    return msg.replace(/^Error:\s*/, '');
+  }
+};
+
 export default function EditUserScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -143,11 +160,11 @@ export default function EditUserScreen() {
       setTimeout(() => router.back(), 1000);
     } catch (error: any) {
       console.error('Error updating user:', error);
-      console.error('Error updating user:', error);
+      const errorMessage = parseBackendError(error);
       Toast.show({
         type: 'error',
         text1: 'Error',
-        text2: error.message || 'Failed to update user'
+        text2: errorMessage
       });
     } finally {
       setIsSaving(false);
