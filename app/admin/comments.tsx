@@ -36,13 +36,13 @@ interface Comment {
   hoTen?: string;
   avt?: string;
   tenSanPham?: string;
+  maSanPham?: number;        // <-- Thêm trường ID sản phẩm
   medias: { duongDan: string }[];
 }
 
 export default function AdminCommentsScreen() {
   const router = useRouter();
   const { user } = useUserStore();
-
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -83,7 +83,7 @@ export default function AdminCommentsScreen() {
           const authHeaders = await AuthService.getAuthHeaders();
           await fetch(`${API_URL}/api/BinhLuan/${id}/trang-thai`, {
             method: 'PATCH',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
               ...authHeaders
             },
@@ -123,6 +123,71 @@ export default function AdminCommentsScreen() {
     );
   }
 
+  const renderCommentItem = ({ item }: { item: Comment }) => {
+    // Nếu có maSanPham thì cho phép click toàn bộ card để sang chi tiết sản phẩm
+    const hasProduct = item.maSanPham != null;
+
+    return (
+      <Card style={styles.commentCard}>
+        <TouchableOpacity
+          activeOpacity={hasProduct ? 0.7 : 1}
+          disabled={!hasProduct}
+          onPress={() => hasProduct && router.push(`/product/${item.maSanPham}`)}
+          style={hasProduct ? styles.touchableCard : undefined}
+        >
+          <View style={styles.commentHeader}>
+            <Image
+              source={item.avt ? { uri: API_URL + item.avt } : DEFAULT_AVATAR}
+              style={styles.avatar}
+              defaultSource={DEFAULT_AVATAR}
+            />
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{item.hoTen || 'Khách'}</Text>
+              <Text style={styles.productName}>{item.tenSanPham || 'Sản phẩm đã xóa'}</Text>
+            </View>
+            <View style={styles.rating}>
+              {[1, 2, 3, 4, 5].map(s => (
+                <Star key={s} size={14} fill={s <= (item.danhGia || 0) ? '#facc15' : 'none'} color="#facc15" />
+              ))}
+            </View>
+          </View>
+
+          {item.tieuDe && <Text style={styles.title}>{item.tieuDe}</Text>}
+          <Text style={styles.content}>{item.noiDung || 'Không có nội dung'}</Text>
+
+          {item.medias.length > 0 && (
+            <View style={styles.images}>
+              {item.medias.slice(0, 3).map((m, i) => (
+                <Image key={i} source={{ uri: API_URL + m.duongDan }} style={styles.thumb} />
+              ))}
+              {item.medias.length > 3 && <Text style={styles.moreImages}>+{item.medias.length - 3}</Text>}
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* Footer không nằm trong vùng touchable của sản phẩm để tránh xung đột */}
+        <View style={styles.footer}>
+          <Text style={styles.date}>{new Date(item.ngayTao).toLocaleDateString('vi-VN')}</Text>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              style={[styles.statusBtn, item.trangThai === 1 ? styles.activeBtn : styles.inactiveBtn]}
+              onPress={() => handleToggleStatus(item.maBinhLuan, item.trangThai)}
+            >
+              {item.trangThai === 1 ? <Eye size={18} color="#10b981" /> : <EyeOff size={18} color="#ef4444" />}
+              <Text style={[styles.statusText, item.trangThai === 1 ? styles.activeText : styles.inactiveText]}>
+                {item.trangThai === 1 ? 'Đang hiển thị' : 'Đã ẩn'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push(`/admin/comment/${item.maBinhLuan}`)}>
+              <Text style={styles.detailText}>Chi tiết →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Card>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -138,56 +203,7 @@ export default function AdminCommentsScreen() {
         data={filteredComments}
         keyExtractor={item => item.maBinhLuan.toString()}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchComments(); }} />}
-        renderItem={({ item }) => (
-          <Card style={styles.commentCard}>
-            <View style={styles.commentHeader}>
-              <Image
-                source={item.avt ? { uri: API_URL + item.avt } : DEFAULT_AVATAR}
-                style={styles.avatar}
-                defaultSource={DEFAULT_AVATAR}
-              />
-              <View style={styles.userInfo}>
-                <Text style={styles.userName}>{item.hoTen || 'Khách'}</Text>
-                <Text style={styles.productName}>{item.tenSanPham || 'Sản phẩm đã xóa'}</Text>
-              </View>
-              <View style={styles.rating}>
-                {[1, 2, 3, 4, 5].map(s => (
-                  <Star key={s} size={14} fill={s <= (item.danhGia || 0) ? '#facc15' : 'none'} color="#facc15" />
-                ))}
-              </View>
-            </View>
-
-            {item.tieuDe && <Text style={styles.title}>{item.tieuDe}</Text>}
-            <Text style={styles.content}>{item.noiDung || 'Không có nội dung'}</Text>
-
-            {item.medias.length > 0 && (
-              <View style={styles.images}>
-                {item.medias.slice(0, 3).map((m, i) => (
-                  <Image key={i} source={{ uri: API_URL + m.duongDan }} style={styles.thumb} />
-                ))}
-                {item.medias.length > 3 && <Text style={styles.moreImages}>+{item.medias.length - 3}</Text>}
-              </View>
-            )}
-
-            <View style={styles.footer}>
-              <Text style={styles.date}>{new Date(item.ngayTao).toLocaleDateString('vi-VN')}</Text>
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={[styles.statusBtn, item.trangThai === 1 ? styles.activeBtn : styles.inactiveBtn]}
-                  onPress={() => handleToggleStatus(item.maBinhLuan, item.trangThai)}
-                >
-                  {item.trangThai === 1 ? <Eye size={18} color="#10b981" /> : <EyeOff size={18} color="#ef4444" />}
-                  <Text style={[styles.statusText, item.trangThai === 1 ? styles.activeText : styles.inactiveText]}>
-                    {item.trangThai === 1 ? 'Đang hiển thị' : 'Đã ẩn'}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => router.push(`/admin/comment/${item.maBinhLuan}`)}>
-                  <Text style={styles.detailText}>Chi tiết →</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </Card>
-        )}
+        renderItem={renderCommentItem}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Package size={64} color={colors.textLight} />
@@ -205,6 +221,7 @@ const styles = StyleSheet.create({
   loadingText: { marginTop: 12, fontSize: 16, color: colors.textLight },
   header: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: colors.border },
   commentCard: { margin: 16, marginBottom: 8, padding: 16, borderRadius: 16 },
+  touchableCard: { flex: 1 }, // Để TouchableOpacity bao bọc phần nội dung chính
   commentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   avatar: { width: 48, height: 48, borderRadius: 24, marginRight: 12 },
   userInfo: { flex: 1 },
