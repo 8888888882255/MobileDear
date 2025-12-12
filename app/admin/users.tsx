@@ -243,7 +243,7 @@ export default function AdminUsersScreen() {
     const targetUser = users.find(u => u.id === userId);
     if (!targetUser) return;
     
-    const isBanned = (targetUser as any).status === 'banned';
+    const isBanned = targetUser.status === 'banned';
     
     showConfirm(
       isBanned ? "Unban User" : "Ban User",
@@ -252,7 +252,7 @@ export default function AdminUsersScreen() {
         setProcessingId(userId);
         // Optimistic update
         const updatedUsers = users.map(u => 
-          u.id === userId ? { ...u, status: isBanned ? 'active' : 'banned' } as any : u
+          u.id === userId ? { ...u, status: (isBanned ? 'active' : 'banned') as 'active' | 'banned' } : u
         );
         setUsers(updatedUsers);
         applyFilters(searchQuery, filterRole, filterStatus, updatedUsers);
@@ -330,7 +330,7 @@ export default function AdminUsersScreen() {
   };
   
   const renderUserItem = ({ item }: { item: User }) => {
-    const isBanned = (item as any).status === 'banned';
+    const isBanned = item.status === 'banned';
     const isProcessing = processingId === item.id;
     
     return (

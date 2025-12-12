@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { Lock, ChevronLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -20,11 +20,22 @@ import { AuthService } from '@/src/services/authService';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
+import { api } from '@/src/config/api';
+
+const API_URL = api.baseUrl;
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { user, isAuthenticated } = useUserStore();
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace('/(tabs)/profile');
+    }
+  };
 
   if (!isAuthenticated || !user) {
     router.replace('/auth/login');
@@ -124,23 +135,12 @@ export default function ChangePasswordScreen() {
       setNewPassword('');
       setConfirmPassword('');
       
-      if (Platform.OS === 'web') {
-        // Keep window.alert for web if preferred, or switch to Toast as well.
-        // Switching to Toast for consistency
-        Toast.show({
-          type: 'success',
-          text1: 'Thành công',
-          text2: 'Đổi mật khẩu thành công',
-        });
-        router.back();
-      } else {
-        Toast.show({
-          type: 'success',
-          text1: 'Thành công',
-          text2: 'Đổi mật khẩu thành công',
-        });
-        router.back();
-      }
+      Toast.show({
+        type: 'success',
+        text1: 'Thành công',
+        text2: 'Đổi mật khẩu thành công',
+      });
+      handleBack();
     } catch (error: any) {
       console.error('Change password failed:', error);
       
@@ -161,7 +161,7 @@ export default function ChangePasswordScreen() {
         style={styles.keyboardAvoidingView}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <ChevronLeft size={24} color={colors.text} />
           </TouchableOpacity>
 

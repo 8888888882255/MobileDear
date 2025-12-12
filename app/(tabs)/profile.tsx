@@ -30,7 +30,9 @@ import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import { showDestructiveConfirm } from '@/src/utils/alert';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
+import { api } from '@/src/config/api';
+
+const API_URL = api.baseUrl;
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -242,7 +244,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}
-            onPress={() => router.push('/')}
+            onPress={() => router.replace('/')}
           >
             <View style={styles.menuItemLeft}>
               <Package size={20} color={colors.text} />

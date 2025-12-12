@@ -14,17 +14,21 @@ import { Product } from '@/types';
 import { useWishlistStore } from '@/store/wishlist-store';
 import colors from '@/constants/colors';
 
+import { useWindowDimensions } from 'react-native';
+
 interface ProductCardProps {
   product: Product;
   width?: number;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
-  width = (SCREEN_WIDTH - 48) / 2,
+  width: customWidth,
 }) => {
+  const { width: windowWidth } = useWindowDimensions();
+  // Calculate default width if not provided (2 columns with padding)
+  const width = customWidth || (windowWidth - 48) / 2;
+
   const router = useRouter();
   const { addItem, removeItem, isInWishlist } = useWishlistStore();
   const isWishlisted = isInWishlist(product.id);

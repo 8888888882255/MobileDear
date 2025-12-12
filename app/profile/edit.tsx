@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { ArrowLeft, Save, User, Mail, Phone, Calendar, FileText, Camera } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -21,6 +21,9 @@ import { AuthService } from '@/src/services/authService';
 import colors from '@/constants/colors';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
+import { api } from '@/src/config/api';
+
+const API_URL = api.baseUrl;
 
 interface EditProfileData {
   name: string;
@@ -33,7 +36,16 @@ interface EditProfileData {
 
 export default function EditProfileScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { user, updateUserProfile, isLoading } = useUserStore();
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace('/(tabs)/profile');
+    }
+  };
 
   const [formData, setFormData] = useState<EditProfileData>({
     name: '',
@@ -61,7 +73,8 @@ export default function EditProfileScreen() {
     file?: File; // Only for web
   };
   const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatar | null>(null);
-  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
+// Moved to top
+
 
   useEffect(() => {
     if (user) {
@@ -264,7 +277,7 @@ export default function EditProfileScreen() {
           <Text style={styles.errorText}>Không thể tải thông tin người dùng</Text>
           <Button
             title="Quay lại"
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={styles.backButton}
           />
         </View>
@@ -283,7 +296,7 @@ export default function EditProfileScreen() {
           <View style={styles.header}>
             <TouchableOpacity 
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={handleBack}
             >
               <ArrowLeft size={24} color={colors.text} />
             </TouchableOpacity>

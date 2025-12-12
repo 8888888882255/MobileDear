@@ -11,9 +11,10 @@ import {
   SafeAreaView,
   Alert,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import Constants from 'expo-constants';
 import { Product } from '@/types';
 import {
@@ -30,8 +31,11 @@ import { useWishlistStore } from '@/store/wishlist-store';
 import { useUserStore } from '@/store/user-store';
 import colors from '@/constants/colors';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083';
+import { api } from '@/src/config/api';
+
+// Moved inside component
+
+const API_URL = api.baseUrl;
 const DEFAULT_AVATAR = require('@/assets/images/icon.png'); // Avatar mặc định
 
 interface Review {
@@ -49,7 +53,17 @@ interface Review {
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const navigation = useNavigation();
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const pid = Array.isArray(id) ? id[0] : id;
+
+  const handleBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      router.replace('/(tabs)/');
+    }
+  };
 
   const [product, setProduct] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -143,7 +157,7 @@ export default function ProductDetailScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.center}>
           <Text style={styles.notFoundText}>Không tìm thấy sản phẩm</Text>
-          <Button title="Quay lại" onPress={() => router.back()} />
+          <Button title="Quay lại" onPress={handleBack} />
         </View>
       </SafeAreaView>
     );
@@ -183,7 +197,7 @@ export default function ProductDetailScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Ảnh sản phẩm - giữ nguyên đẹp */}
-        <View style={styles.imageContainer}>
+        <View style={[styles.imageContainer, { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.2 }]}>
           <Image source={{ uri: product.images[selectedImage] || 'https://via.placeholder.com/400' }} style={styles.mainImage} />
           <TouchableOpacity style={[styles.imageNavButton, styles.prevButton]} onPress={() => setSelectedImage((prev) => (prev - 1 + product.images.length) % product.images.length)}>
             <ChevronLeft size={24} color="#fff" />
@@ -331,7 +345,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 12, fontSize: 16, color: colors.textLight },
   notFoundText: { fontSize: 18, marginBottom: 20, color: colors.text },
-  imageContainer: { width: SCREEN_WIDTH, height: SCREEN_WIDTH * 1.2, position: 'relative' },
+  imageContainer: { position: 'relative' },
   mainImage: { width: '100%', height: '100%' },
   imageNavButton: { position: 'absolute', top: '50%', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center', transform: [{ translateY: -20 }] },
   prevButton: { left: 10 },

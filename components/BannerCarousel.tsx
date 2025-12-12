@@ -3,7 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions,
   TouchableOpacity,
   FlatList,
   ImageBackground,
@@ -22,13 +22,12 @@ interface BannerCarouselProps {
   autoPlayInterval?: number;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 export const BannerCarousel: React.FC<BannerCarouselProps> = ({
   banners,
   autoPlay = true,
   autoPlayInterval = 5000,
 }) => {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { api } from '@/src/config/api';
 import {
   View,
   Text,
@@ -10,6 +11,8 @@ import {
   Alert,
   Image,
   Platform,
+  RefreshControl,
+  Linking,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
@@ -67,7 +70,7 @@ interface DanhMuc {
   trangThai: number;
 }
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
+const API_URL = api.baseUrl;
 
 const mapApiProductToProduct = (item: ApiProduct): Product => {
   return {
@@ -271,14 +274,20 @@ export default function HomeScreen() {
     loadHotSaleProducts();
   }, [loadBanners, loadPromoBanner, loadCategories, loadNewestProducts, loadHotSaleProducts]);
 
-  // Refresh products when screen is focused
+  // Refresh products when screen is focused (debounce 1 min)
+  const lastRefresh = React.useRef(0);
+  
   useFocusEffect(
     useCallback(() => {
-      loadBanners();
-      loadPromoBanner();
-      loadCategories();
-      loadNewestProducts();
-      loadHotSaleProducts();
+      const now = Date.now();
+      if (now - lastRefresh.current > 60000) { // 60 seconds
+        loadBanners();
+        loadPromoBanner();
+        loadCategories();
+        loadNewestProducts();
+        loadHotSaleProducts();
+        lastRefresh.current = now;
+      }
     }, [loadBanners, loadPromoBanner, loadCategories, loadNewestProducts, loadHotSaleProducts])
   );
 
@@ -330,11 +339,15 @@ export default function HomeScreen() {
           <View style={styles.promoBannerContainer}>
             <TouchableOpacity 
               activeOpacity={0.9}
-              onPress={() => {
-                if (promoBanner.link) {
-                  router.push(promoBanner.link as any);
-                }
-              }}
+                onPress={() => {
+                  if (promoBanner.link) {
+                    if (promoBanner.link.startsWith('http')) {
+                      Linking.openURL(promoBanner.link);
+                    } else {
+                      router.push(promoBanner.link as any);
+                    }
+                  }
+                }}
             >
               <Image 
                 source={{ uri: promoBanner.image }} 
