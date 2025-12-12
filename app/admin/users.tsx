@@ -388,7 +388,7 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
                 </Text>
                 {isBanned && (
                     <View style={styles.bannedBadgeSmall}>
-                        <Text style={styles.bannedTextSmall}>Banned</Text>
+                        <Text style={styles.bannedTextSmall}>Đã khóa</Text>
                     </View>
                 )}
             </View>
@@ -400,7 +400,7 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
             <View style={styles.cardMeta}>
               <View style={styles.roleContainer}>
                  <UserIcon size={12} color={colors.textLight} />
-                 <Text style={styles.roleText}>{item.isAdmin ? 'Admin' : 'User'}</Text>
+                 <Text style={styles.roleText}>{item.isAdmin ? 'Quản trị viên' : 'Người dùng'}</Text>
               </View>
               
               {!isSelectionMode && (

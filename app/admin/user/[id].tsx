@@ -87,8 +87,8 @@ export default function EditUserScreen() {
       console.error('Error fetching user details:', error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Failed to load user details'
+        text1: 'Lỗi',
+        text2: 'Không thể tải thông tin người dùng'
       });
       router.back();
     } finally {
@@ -100,16 +100,16 @@ export default function EditUserScreen() {
     if (!name.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Name is required'
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập họ tên'
       });
       return false;
     }
     if (!email.trim()) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Email is required'
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập email'
       });
       return false;
     }
@@ -117,8 +117,8 @@ export default function EditUserScreen() {
     if (!emailRegex.test(email)) {
       Toast.show({
         type: 'error',
-        text1: 'Error',
-        text2: 'Please enter a valid email address'
+        text1: 'Lỗi',
+        text2: 'Vui lòng nhập địa chỉ email hợp lệ'
       });
       return false;
     }
@@ -150,8 +150,8 @@ export default function EditUserScreen() {
 
       Toast.show({
         type: 'success',
-        text1: 'Success',
-        text2: 'User updated successfully!',
+        text1: 'Thành công',
+        text2: 'Cập nhật người dùng thành công!',
         onHide: () => {
            router.back();
         }
@@ -163,7 +163,7 @@ export default function EditUserScreen() {
       const errorMessage = parseBackendError(error);
       Toast.show({
         type: 'error',
-        text1: 'Error',
+        text1: 'Lỗi',
         text2: errorMessage
       });
     } finally {
@@ -173,12 +173,12 @@ export default function EditUserScreen() {
 
   const handleChangeAvatar = () => {
     showAlertWithButtons(
-      'Change Avatar',
-      'Enter a new avatar URL',
+      'Đổi ảnh đại diện',
+      'Nhập URL ảnh đại diện mới',
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: 'Hủy', style: 'cancel' },
         {
-          text: 'Random Avatar',
+          text: 'Ảnh ngẫu nhiên',
           onPress: () => {
             const randomNum = Math.floor(Math.random() * 70) + 1;
             setAvatar(`https://i.pravatar.cc/150?img=${randomNum}`);
@@ -193,7 +193,7 @@ export default function EditUserScreen() {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Profile Picture</Text>
+            <Text style={styles.sectionTitle}>Ảnh đại diện</Text>
 
             <View style={styles.avatarSection}>
               <View style={styles.avatarContainer}>
@@ -219,7 +219,7 @@ export default function EditUserScreen() {
               </View>
 
               <Input
-                label="Avatar URL"
+                label="URL Ảnh"
                 placeholder="https://example.com/avatar.jpg"
                 value={avatar}
                 onChangeText={setAvatar}
@@ -229,11 +229,11 @@ export default function EditUserScreen() {
           </Card>
 
           <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Basic Information</Text>
+            <Text style={styles.sectionTitle}>Thông tin cơ bản</Text>
 
             <Input
-              label="Full Name"
-              placeholder="Enter full name"
+              label="Họ tên"
+              placeholder="Nhập họ tên"
               value={name}
               onChangeText={setName}
             />
@@ -248,8 +248,8 @@ export default function EditUserScreen() {
             />
 
             <Input
-              label="Phone (Optional)"
-              placeholder="+1 234 567 8900"
+              label="Số điện thoại (Tùy chọn)"
+              placeholder="+84 123 456 789"
               value={phone}
               onChangeText={setPhone}
               keyboardType="phone-pad"
@@ -257,7 +257,7 @@ export default function EditUserScreen() {
           </Card>
 
           <Card style={styles.section}>
-            <Text style={styles.sectionTitle}>Permissions</Text>
+            <Text style={styles.sectionTitle}>Phân quyền</Text>
 
             <TouchableOpacity
               style={styles.checkboxRow}
@@ -267,9 +267,9 @@ export default function EditUserScreen() {
                 {isAdmin && <View style={styles.checkboxFill} />}
               </View>
               <View style={styles.checkboxContent}>
-                <Text style={styles.checkboxLabel}>Administrator</Text>
+                <Text style={styles.checkboxLabel}>Quản trị viên</Text>
                 <Text style={styles.checkboxDescription}>
-                  Grant this user full administrative access
+                  Cấp toàn quyền quản trị cho người dùng này
                 </Text>
               </View>
             </TouchableOpacity>
@@ -277,13 +277,13 @@ export default function EditUserScreen() {
 
           <View style={styles.actions}>
             <Button
-              title="Cancel"
+              title="Hủy"
               onPress={() => router.back()}
               variant="outline"
               style={styles.actionButton}
             />
             <Button
-              title={isSaving ? 'Saving...' : 'Update User'}
+              title={isSaving ? 'Đang lưu...' : 'Cập nhật'}
               onPress={handleSave}
               disabled={isSaving}
               style={styles.actionButton}

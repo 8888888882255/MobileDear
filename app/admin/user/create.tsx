@@ -199,20 +199,20 @@ export default function CreateUserScreen() {
                     style={[styles.optionBtn, formData.vaiTro === 0 && styles.activeOption]}
                     onPress={() => handleChange('vaiTro', 0)}
                   >
-                    <Text style={[styles.optionText, formData.vaiTro === 0 && styles.activeOptionText]}>User</Text>
+                    <Text style={[styles.optionText, formData.vaiTro === 0 && styles.activeOptionText]}>Người dùng</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={[styles.optionBtn, formData.vaiTro === 1 && styles.activeOption]}
                     onPress={() => handleChange('vaiTro', 1)}
                   >
-                    <Text style={[styles.optionText, formData.vaiTro === 1 && styles.activeOptionText]}>Admin</Text>
+                    <Text style={[styles.optionText, formData.vaiTro === 1 && styles.activeOptionText]}>Quản trị viên</Text>
                   </TouchableOpacity>
                 </View>
               </View>
             </View>
 
             <Button
-              title="Tạo User"
+              title="Tạo người dùng"
               onPress={handleCreate}
               loading={isLoading}
               style={styles.submitBtn}
