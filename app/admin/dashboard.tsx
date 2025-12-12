@@ -45,25 +45,10 @@ export default function AdminDashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Quản trị hệ thống</Text>
-          <Text style={styles.subtitle}>Xin chào, {user?.name}</Text>
-        </View>
-        
-        {/* Thống kê nhanh */}
-        <View style={styles.statsContainer}>
-          {stats.map((stat, index) => (
-            <Card key={index} style={styles.statCard}>
-              <View style={[styles.iconContainer, { backgroundColor: stat.color + '20' }]}>
-                <stat.icon size={28} color={stat.color} />
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statTitle}>{stat.title}</Text>
-            </Card>
-          ))}
         </View>
         
         {/* Hành động nhanh */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Quản lý nhanh</Text>
           
           <View style={styles.actionsContainer}>
             <TouchableOpacity 

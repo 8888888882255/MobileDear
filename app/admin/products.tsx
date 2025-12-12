@@ -24,7 +24,7 @@ import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import { productApi } from '../../src/services/productApi';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 type SanPham = {
   maSanPham: number;

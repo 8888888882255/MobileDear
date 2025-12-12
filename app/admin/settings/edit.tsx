@@ -27,7 +27,7 @@ import { GiaoDien, GiaoDienEdit, Media, SETTING_TYPES } from '@/types';
 import { SettingsService } from '@/src/services/settingsService';
 import { showDestructiveConfirm } from '@/src/utils/alert';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 export default function EditSettingScreen() {
   const router = useRouter();

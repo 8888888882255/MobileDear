@@ -23,7 +23,7 @@ import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 import * as ImagePicker from 'expo-image-picker';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 // Kiểu ảnh hỗ trợ tất cả nền tảng
 type SelectedImage = {
@@ -56,13 +56,13 @@ export default function NewProductScreen() {
   const [selectedMaHashtag, setSelectedMaHashtag] = useState<number | null>(null);
 
   // Giới tính
-  const [gioiTinh, setGioiTinh] = useState<string>('Phụ Nữ');
+  const [gioiTinh, setGioiTinh] = useState<string>('Mặc Định');
 
   const gioiTinhMap: Record<string, number> = {
-    'Phụ Nữ': 2,
+    'Mặc Định': 0,
     'Nam': 1,
-    'Trẻ Em': 3,
-    'Phụ Kiện': 0,
+    'Nữ': 2,
+    'Khác': 3,
   };
 
   // Bảo vệ route admin
@@ -288,7 +288,7 @@ export default function NewProductScreen() {
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Giới Tính</Text>
           <View style={styles.categoryButtons}>
-            {['Phụ Nữ', 'Nam', 'Trẻ Em', 'Phụ Kiện'].map(item => (
+            {['Mặc Định', 'Nam', 'Nữ', 'Khác'].map(item => (
               <TouchableOpacity
                 key={item}
                 style={[styles.categoryButton, gioiTinh === item && styles.activeCategoryButton]}

@@ -61,7 +61,7 @@ export default function EditProfileScreen() {
     file?: File; // Only for web
   };
   const [selectedAvatar, setSelectedAvatar] = useState<SelectedAvatar | null>(null);
-  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
+  const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
   useEffect(() => {
     if (user) {
