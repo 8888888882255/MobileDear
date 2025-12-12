@@ -119,4 +119,5 @@ We adhere to a strict modular architecture to ensure scalability. See [docs/PROJ
 
 ## � Licensing
 
-This project is proprietary. All rights reserved.
+This project is proprietary. All rights reserved..
+
