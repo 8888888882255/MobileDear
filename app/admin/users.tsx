@@ -27,8 +27,10 @@ import {
   MapPin,
   Calendar,
   X,
-  ShoppingBag
+  ShoppingBag,
+  Pencil
 } from 'lucide-react-native';
+
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -158,7 +160,7 @@ export default function AdminUsersScreen() {
           break;
         default:
           comparison = 0;
-      }
+        }
       
       return newSortOrder === 'asc' ? comparison : -comparison;
     });
@@ -328,13 +330,13 @@ export default function AdminUsersScreen() {
       }
     );
   };
-  
+
   const renderUserItem = ({ item }: { item: User }) => {
     const isBanned = item.status === 'banned';
     const isProcessing = processingId === item.id;
     
     return (
-      <TouchableOpacity onPress={() => handleViewUser(item)} disabled={isProcessing}>
+      <View>
         <Card style={isProcessing ? [styles.userCard, { opacity: 0.7 }] : styles.userCard}>
           <View style={styles.userContainer}>
             <View style={styles.avatarContainer}>
@@ -383,6 +385,14 @@ export default function AdminUsersScreen() {
             <View style={styles.actionsContainer}>
               <TouchableOpacity 
                 style={styles.actionButton}
+                onPress={() => handleEditUser(item.id)}
+                disabled={isProcessing}
+              >
+                <Pencil size={18} color={isProcessing ? colors.textLight : colors.primary} />
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.actionButton}
                 onPress={() => handleToggleAdmin(item.id)}
                 disabled={isProcessing}
               >
@@ -415,10 +425,9 @@ export default function AdminUsersScreen() {
             </View>
           </View>
         </Card>
-      </TouchableOpacity>
+      </View>
     );
   };
-  
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
