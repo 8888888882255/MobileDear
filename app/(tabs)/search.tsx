@@ -118,7 +118,9 @@ export default function SearchScreen() {
   
   // Calculate dynamic columns
   const getNumColumns = () => {
-    if (layoutMode === 'list') return 1;
+    if (layoutMode === 'list') {
+      return windowWidth > 768 ? 2 : 1;
+    }
     if (windowWidth > 1024) return 4;
     if (windowWidth > 768) return 3;
     return 2;
@@ -132,9 +134,16 @@ export default function SearchScreen() {
   const getCardWidth = () => {
     const effectiveContainerWidth = Math.min(windowWidth, contentMaxWidth);
 
+    // Padding horizontal (GAP) is usually applied on container or column wrapper
+    // For List Mode with > 1 column, we treat it similarly to Grid but with different aspect ratio in ProductCard
     if (layoutMode === 'list') {
-      return effectiveContainerWidth - (GAP * 2); // Full width minus padding
+       if (numColumns === 1) {
+          return effectiveContainerWidth - (GAP * 2); 
+       }
+       // 2 columns list mode -> treat like grid calculation
+       return (effectiveContainerWidth - 48) / numColumns; 
     }
+    
     // Grid mode logic
     // We strictly use (effectiveWidth - 48) / numColumns to ensure it fits in the centered container
     return (effectiveContainerWidth - 48) / numColumns; 
@@ -273,10 +282,10 @@ export default function SearchScreen() {
     };
 
     const isList = layoutMode === 'list';
-    // Container width is just '100%' of the (potentially constrained) parent column/list
-    // or specific width if grid. 
-    // Actually, simply using finalCardWidth for grid and '100%' for list is safest.
-    const containerWidth = isList ? '100%' : finalCardWidth;
+    // If list mode has > 1 column, we treat it visually like a grid but with "list" variant cards.
+    // So container width should be finalCardWidth.
+    // Only if it is strictly single column list do we use 100%.
+    const containerWidth = (isList && numColumns === 1) ? '100%' : finalCardWidth;
     
     return (
       <View style={{ 
@@ -357,7 +366,7 @@ export default function SearchScreen() {
             key={layoutMode + numColumns} // Force re-render on layout/column change
             contentContainerStyle={[styles.listContent, containerStyle as any]}
             columnWrapperStyle={
-              layoutMode === 'grid'
+              numColumns > 1
                 ? styles.column
                 : undefined
             }
