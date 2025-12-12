@@ -25,7 +25,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { productApi } from '@/src/services/productApi';
 import { showDestructiveConfirm } from '@/src/utils/alert';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 type MediaItem = { maMedia: number; duongDan: string };
 type SelectedImage = {
@@ -52,7 +52,7 @@ export default function EditProductScreen() {
   const [price, setPrice] = useState('');
   const [discountPrice, setDiscountPrice] = useState('');
   const [stock, setStock] = useState('');
-  const [gioiTinh, setGioiTinh] = useState('Phụ Nữ');
+  const [gioiTinh, setGioiTinh] = useState('Mặc Định');
 
   // Danh mục
   const [loaiList, setLoaiList] = useState<any[]>([]);
@@ -67,10 +67,10 @@ export default function EditProductScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const gioiTinhMap: Record<string, number> = {
-    'Phụ Nữ': 2,
+    'Mặc Định': 0,
     'Nam': 1,
-    'Trẻ Em': 3,
-    'Phụ Kiện': 0,
+    'Nữ': 2,
+    'Khác': 3,
   };
 
   if (!user?.isAdmin) {
@@ -127,7 +127,7 @@ export default function EditProductScreen() {
     setSelectedMaThuongHieu(p.maThuongHieu);
     setSelectedMaHashtag(p.maHashtag);
 
-    const gt = Object.keys(gioiTinhMap).find(k => gioiTinhMap[k] === p.gioiTinh) || 'Phụ Nữ';
+    const gt = Object.keys(gioiTinhMap).find(k => gioiTinhMap[k] === p.gioiTinh) || 'Mặc Định';
     setGioiTinh(gt);
 
     if (p.medias?.length > 0) {
@@ -352,7 +352,7 @@ export default function EditProductScreen() {
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Giới Tính</Text>
           <View style={styles.chipRow}>
-            {['Phụ Nữ', 'Nam', 'Trẻ Em', 'Phụ Kiện'].map(item => (
+            {['Mặc Định', 'Nam', 'Nữ', 'Khác'].map(item => (
               <TouchableOpacity
                 key={item}
                 style={[styles.chip, gioiTinh === item && styles.activeChip]}

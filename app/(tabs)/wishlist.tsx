@@ -17,7 +17,7 @@ import colors from '@/constants/colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { showDestructiveConfirm } from '@/src/utils/alert';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 // Nếu chạy trên emulator Android thì localhost phải là 10.0.2.2
 // Nếu chạy trên iOS simulator hoặc thiết bị thật thì dùng localhost hoặc IP máy
 

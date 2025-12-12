@@ -35,7 +35,7 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
 
 type TabType = 'all' | 'logo' | 'banner' | 'slider';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 export default function AdminSettingsScreen() {
   const router = useRouter();
