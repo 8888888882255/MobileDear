@@ -160,25 +160,48 @@ export const useUserStore = create<UserState>()(
 
     checkAuthStatus: async () => {
       console.log('UserStore - checkAuthStatus called');
+      set({ isLoading: true });
       try {
         const token = await AuthService.getStoredToken();
         console.log('UserStore - Token from storage:', token ? 'EXISTS' : 'NULL');
         
         if (!token) {
           console.log('UserStore - No token found, setting unauthenticated');
-          set({ isAuthenticated: false, user: null });
+          set({ isAuthenticated: false, user: null, isLoading: false });
           return;
         }
         
         // Verify token by calling API to get user profile
         try {
           console.log('UserStore - Verifying token with API');
-          // Decode token to get user ID
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          const userId = payload.sub;
           
-          // Verify token is still valid by fetching user profile
-          const userData = await AuthService.getUserProfile(userId);
+          // Decode token safely without atob (which crashes on Android)
+          const parts = token.split('.');
+          if (parts.length !== 3) throw new Error('Invalid token format');
+          
+          const base64Url = parts[1];
+          const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+
+          // Custom Base64 decode function that works in React Native (no atob needed)
+          const decodeBase64 = (str: string) => {
+             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+             let output = '';
+             str = str.replace(/=+$/, '');
+             if (str.length % 4 == 1) throw new Error("'atob' failed: The string to be decoded is not correctly encoded.");
+             for (let bc = 0, bs = 0, buffer, i = 0; buffer = str.charAt(i++); ~buffer && (bs = bc % 4 ? bs * 64 + buffer : buffer, bc++ % 4) ? output += String.fromCharCode(255 & bs >> (-2 * bc & 6)) : 0) {
+                buffer = chars.indexOf(buffer);
+             }
+             return output;
+          }
+          
+          const payloadStr = decodeBase64(base64);
+          const payload = JSON.parse(payloadStr);
+          // Try to get ID from standard claims
+          const extractedId = payload.sub || payload.nameid || payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+          
+          console.log('UserStore - Token ID extracted:', extractedId);
+          
+          const userData = await AuthService.getUserProfile(extractedId);
           console.log('UserStore - Token valid, user data received');
           
           const user: User = {
@@ -189,17 +212,17 @@ export const useUserStore = create<UserState>()(
             addresses: []
           };
           
-          set({ user, isAuthenticated: true });
+          set({ user, isAuthenticated: true, isLoading: false });
           console.log('UserStore - User session restored');
         } catch (error) {
           // Token invalid or expired
-          console.log('UserStore - Token invalid or expired, clearing auth state');
+          console.log('UserStore - Token invalid or expired, clearing auth state', error);
           await AuthService.removeToken();
-          set({ isAuthenticated: false, user: null });
+          set({ isAuthenticated: false, user: null, isLoading: false });
         }
       } catch (error) {
         console.error('UserStore - Failed to check auth status:', error);
-        set({ isAuthenticated: false, user: null });
+        set({ isAuthenticated: false, user: null, isLoading: false });
       }
     },
 

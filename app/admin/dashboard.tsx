@@ -5,7 +5,8 @@ import {
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  SafeAreaView 
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { useRouter } from 'expo-router'; // ĐÃ SỬA: chỉ import 1 lần
 import { 
@@ -21,7 +22,15 @@ import colors from '@/constants/colors';
 
 export default function AdminDashboardScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { user, isLoading } = useUserStore();
+  
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
   
   // Bảo vệ route: chỉ admin mới được vào
   if (!user?.isAdmin) {
