@@ -112,28 +112,25 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({
         getItemLayout={getItemLayout}
         onScrollToIndexFailed={handleScrollToIndexFailed}
         renderItem={({ item }) => (
-          <View style={[styles.bannerContainer, { width: SCREEN_WIDTH }]}>
+          <TouchableOpacity
+            style={[styles.bannerContainer, { width: SCREEN_WIDTH }]}
+            onPress={() => handleBannerPress(item)}
+            activeOpacity={0.9}
+          >
             <ImageBackground
               source={{ uri: item.image }}
               style={styles.bannerImage}
               imageStyle={styles.bannerImageStyle}
             >
+              <View style={styles.overlay} />
               <View style={styles.contentContainer}>
-                <Text style={styles.title}>{item.title}</Text>
-                {item.subtitle && (
+                <View style={styles.textContainer}>
+                  <Text style={styles.title}>{item.title}</Text>
                   <Text style={styles.subtitle}>{item.subtitle}</Text>
-                )}
-                {item.buttonText && (
-                  <Button
-                    title={item.buttonText}
-                    onPress={() => handleBannerPress(item)}
-                    style={styles.button}
-                    size="small"
-                  />
-                )}
+                </View>
               </View>
             </ImageBackground>
-          </View>
+          </TouchableOpacity>
         )}
       />
 
@@ -165,32 +162,39 @@ const styles = StyleSheet.create({
   bannerImage: {
     width: '100%',
     height: '100%',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   bannerImageStyle: {
-    borderRadius: 12,
+    borderRadius: 16,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'transparent',
   },
   contentContainer: {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    padding: 20,
-    borderRadius: 12,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
+  
+    justifyContent: 'flex-end',
+  },
+  textContainer: {
+    backgroundColor: 'rgba(184, 165, 209, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#b8a5d1',
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
   },
   title: {
     color: '#fff',
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  button: {
-    alignSelf: 'flex-start',
+    color: '#fff',
+    fontSize: 13,
+    lineHeight: 18,
   },
   paginationContainer: {
     flexDirection: 'row',
@@ -202,13 +206,17 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.border,
+    backgroundColor: '#e0d4ed',
     marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: '#b8a5d1',
   },
   paginationDotActive: {
-    backgroundColor: colors.primary,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    backgroundColor: '#b8a5d1',
+    width: 24,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#9d7ec4',
   },
 });
