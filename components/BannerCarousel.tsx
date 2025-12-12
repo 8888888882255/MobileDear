@@ -218,5 +218,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 2,
     borderColor: '#9d7ec4',
+    
   },
 });
