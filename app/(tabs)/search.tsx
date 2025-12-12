@@ -56,7 +56,7 @@ interface ProductFilterParams {
 }
 
 // API Configuration
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://192.168.1.2:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 const api = {
   baseUrl: API_URL,

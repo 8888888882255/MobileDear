@@ -25,7 +25,7 @@ export class AuthService {
     
     // Fallback to localhost if no config
     console.warn('No apiUrl found in app.json, using localhost:5083');
-    return 'http://localhost:5083/api';
+    return 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net/api';
   }
 
   private static async request<T>(

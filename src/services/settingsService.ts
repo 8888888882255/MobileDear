@@ -19,7 +19,7 @@ export class SettingsService {
       return configUrl.endsWith('/api') ? configUrl : `${configUrl}/api`;
     }
     console.warn('No apiUrl found in app.json, using localhost:5083');
-    return 'http://localhost:5083/api';
+    return 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net/api';
   }
 
   private static async request<T>(
@@ -251,7 +251,7 @@ export class SettingsService {
     if (!path) return '';
     if (path.startsWith('http') || path.startsWith('data:')) return path;
 
-    const configUrl = Constants.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
+    const configUrl = Constants.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
     const baseUrl = configUrl.replace('/api', '');
     return `${baseUrl}${path}`;
   }

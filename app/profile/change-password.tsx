@@ -20,7 +20,7 @@ import { AuthService } from '@/src/services/authService';
 import colors from '@/constants/colors';
 import Constants from 'expo-constants';
 
-const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'http://localhost:5083';
+const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();

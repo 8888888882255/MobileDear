@@ -104,8 +104,8 @@ export default function LoginScreen() {
 
   const openAppStore = () => {
     const appStoreUrl = Platform.OS === 'ios'
-      ? 'https://apps.apple.com/app/your-app-id' // Replace with actual App Store URL
-      : 'https://play.google.com/store/apps/details?id=com.yourcompany.yourapp'; // Replace with actual Play Store URL
+      ? 'https://drive.google.com/drive/folders/1Uhu5ungcN3tA7PeYCDkmxCiQtOZaUVhs?usp=sharing' // Replace with actual App Store URL
+      : 'https://drive.google.com/drive/folders/1Uhu5ungcN3tA7PeYCDkmxCiQtOZaUVhs?usp=sharing'; // Replace with actual Play Store URL
 
     if (Platform.OS === 'web') {
       window.open(appStoreUrl, '_blank');
