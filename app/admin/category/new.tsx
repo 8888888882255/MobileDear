@@ -1,5 +1,5 @@
 // app/admin/category/new.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Image,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
@@ -32,17 +33,18 @@ const types = [
 
 export default function NewCategoryScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
-
-  if (!user?.isAdmin) {
-    router.replace('/');
-    return null;
-  }
+  const { user, isLoading: isAuthLoading } = useUserStore();
 
   const [name, setName] = useState('');
   const [type, setType] = useState<1 | 2 | 3>(1);
   const [image, setImage] = useState<any>(null); // uri + file (web) hoặc asset (mobile)
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthLoading && !user?.isAdmin) {
+      router.replace('/');
+    }
+  }, [user, isAuthLoading]);
 
   // Hàm chọn ảnh - hỗ trợ cả mobile và web
   const pickImage = async () => {
@@ -176,6 +178,22 @@ export default function NewCategoryScreen() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.container}>
+             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                 <ActivityIndicator size="large" color={colors.primary} />
+             </View>
+        </SafeAreaView>
+    );
+  }
+
+  if (!user?.isAdmin) return null;
+
+  const handleBack = () => {
+      router.push('/admin/categorys');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -227,7 +245,7 @@ export default function NewCategoryScreen() {
             <Button
               title="Hủy"
               variant="outline"
-              onPress={() => router.back()}
+              onPress={handleBack}
               disabled={loading}
               style={styles.btn}
             />

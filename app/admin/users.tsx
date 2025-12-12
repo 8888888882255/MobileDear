@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { useUserStore } from '@/store/user-store';
 import {
   Plus,
   Trash2,
@@ -72,7 +73,18 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
   };
 
   export default function AdminUsersScreen() {
-  const router = useRouter();
+    const router = useRouter(); 
+    const { user, isLoading: isAuthLoading } = useUserStore(); // Add user store access
+
+    // Protect Admin Route
+    useEffect(() => {
+        if (!isAuthLoading && !user?.isAdmin) {
+            router.replace('/');
+        }
+    }, [user, isAuthLoading]);
+
+
+
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [allItems, setAllItems] = useState<User[]>([]);
@@ -442,6 +454,22 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
 
 
 
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+        </SafeAreaView>
+    );
+  }
+
+  if (!user?.isAdmin) return null;
+
+  // Handle back navigation safely
+  // Handle back navigation safely
+  const handleBack = () => {
+    router.push('/admin/dashboard');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -464,7 +492,7 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
           <>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={handleBack}
             >
               <ChevronLeft size={24} color={colors.text} />
             </TouchableOpacity>

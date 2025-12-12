@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
-import { Search, Star, Eye, EyeOff, Package } from 'lucide-react-native';
+import { Search, Star, Eye, EyeOff, Package, ChevronLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -42,16 +42,21 @@ interface Comment {
 
 export default function AdminCommentsScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { user, isLoading: isAuthLoading } = useUserStore();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  if (!user?.isAdmin) {
-    router.replace('/');
-    return null;
-  }
+  useEffect(() => {
+      if (!isAuthLoading && !user?.isAdmin) {
+          router.replace('/');
+          return;
+      }
+      if (user?.isAdmin) {
+          fetchComments();
+      }
+  }, [user, isAuthLoading]);
 
   const fetchComments = async () => {
     try {
@@ -71,7 +76,9 @@ export default function AdminCommentsScreen() {
   };
 
   useEffect(() => {
-    fetchComments();
+    if (user?.isAdmin) {
+        fetchComments();
+    }
   }, []);
 
   const handleToggleStatus = async (id: number, currentStatus: number) => {
@@ -111,6 +118,18 @@ export default function AdminCommentsScreen() {
     c.tenSanPham?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.noiDung?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.container}>
+             <View style={styles.center}>
+                 <ActivityIndicator size="large" color={colors.primary} />
+             </View>
+        </SafeAreaView>
+    );
+  }
+
+  if (!user?.isAdmin) return null;
 
   if (loading) {
     return (
@@ -188,15 +207,24 @@ export default function AdminCommentsScreen() {
     );
   };
 
+  const handleBack = () => {
+    router.push('/admin/dashboard');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Input
-          placeholder="Tìm kiếm bình luận..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          leftIcon={<Search size={20} color={colors.textLight} />}
-        />
+      <View style={[styles.header, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
+        <TouchableOpacity onPress={handleBack}>
+           <ChevronLeft size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+            <Input
+              placeholder="Tìm kiếm bình luận..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              leftIcon={<Search size={20} color={colors.textLight} />}
+            />
+        </View>
       </View>
 
       <FlatList

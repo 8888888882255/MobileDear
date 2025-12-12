@@ -460,7 +460,7 @@ export default function AdminSettingsScreen() {
           <>
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={() => router.push('/admin/dashboard')}
             >
               <ChevronLeft size={24} color={colors.text} />
             </TouchableOpacity>

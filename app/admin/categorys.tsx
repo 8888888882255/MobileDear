@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
-import { Plus, Search, Edit, Trash2, Tag, Package } from 'lucide-react-native';
+import { Plus, Search, Edit, Trash2, Tag, Package, ArrowLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -43,105 +43,126 @@ const getTypeColor = (loai: number): string => {
   return loai === 1 ? '#3b82f6' : loai === 2 ? '#10b981' : '#8b5cf6';
 };
 
-export default function AdminCategoriesScreen() {
-  const router = useRouter();
-  const { user } = useUserStore();
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
-
-  const fetchCategories = async () => {
-    try {
-      const res = await axios.get(`${API_URL}/api/DanhMuc`);
-      setCategories(res.data || []);
-    } catch {
-      Toast.show({
-        type: 'error',
-        text1: 'Lỗi',
-        text2: 'Không thể tải danh sách danh mục',
-      });
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!user?.isAdmin) {
-      router.replace('/');
-      return;
-    }
-    fetchCategories();
-  }, [user]);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      fetchCategories();
-      return;
-    }
-    try {
-      const res = await axios.get(`${API_URL}/api/DanhMuc/search?keyword=${encodeURIComponent(searchQuery)}`);
-      setCategories(res.data || []);
-    } catch {
-      Toast.show({
-        type: 'error',
-        text1: 'Tìm kiếm thất bại',
-        text2: 'Không tìm thấy kết quả',
-      });
-    }
-  };
-
-  const handleDelete = (id: number, name: string) => {
-    showDestructiveConfirm(
-      'Xóa danh mục',
-      `Bạn có chắc chắn muốn xóa "${name}"?`,
-      'Xóa',
-      async () => {
-        try {
-          const headers = await AuthService.getAuthHeaders();
-          await axios.delete(`${API_URL}/api/DanhMuc/${id}`, { headers });
-          setCategories(prev => prev.filter(c => c.maDanhMuc !== id));
-          Toast.show({
-            type: 'success',
-            text1: 'Thành công',
-            text2: 'Đã xóa danh mục!',
-          });
-        } catch {
-          Toast.show({
-            type: 'error',
-            text1: 'Lỗi',
-            text2: 'Không thể xóa. Vui lòng thử lại.',
-          });
-        }
+  export default function AdminCategoriesScreen() {
+    const router = useRouter();
+    const { user, isLoading: isAuthLoading } = useUserStore();
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [categories, setCategories] = useState<Category[]>([]);
+  
+    const fetchCategories = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/DanhMuc`);
+        setCategories(res.data || []);
+      } catch {
+        Toast.show({
+          type: 'error',
+          text1: 'Lỗi',
+          text2: 'Không thể tải danh sách danh mục',
+        });
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-    );
+    };
+  
+    useEffect(() => {
+      if (!isAuthLoading && !user?.isAdmin) {
+        router.replace('/');
+        return;
+      }
+      if (user?.isAdmin) {
+          fetchCategories();
+      }
+    }, [user, isAuthLoading]);
+  
+    const handleSearch = async () => {
+      if (!searchQuery.trim()) {
+        fetchCategories();
+        return;
+      }
+      try {
+        const res = await axios.get(`${API_URL}/api/DanhMuc/search?keyword=${encodeURIComponent(searchQuery)}`);
+        setCategories(res.data || []);
+      } catch {
+        Toast.show({
+          type: 'error',
+          text1: 'Tìm kiếm thất bại',
+          text2: 'Không tìm thấy kết quả',
+        });
+      }
+    };
+  
+    const handleDelete = (id: number, name: string) => {
+      showDestructiveConfirm(
+        'Xóa danh mục',
+        `Bạn có chắc chắn muốn xóa "${name}"?`,
+        'Xóa',
+        async () => {
+          try {
+            const headers = await AuthService.getAuthHeaders();
+            await axios.delete(`${API_URL}/api/DanhMuc/${id}`, { headers });
+            setCategories(prev => prev.filter(c => c.maDanhMuc !== id));
+            Toast.show({
+              type: 'success',
+              text1: 'Thành công',
+              text2: 'Đã xóa danh mục!',
+            });
+          } catch {
+            Toast.show({
+              type: 'error',
+              text1: 'Lỗi',
+              text2: 'Không thể xóa. Vui lòng thử lại.',
+            });
+          }
+        }
+      );
+    };
+
+    if (isAuthLoading) {
+      return (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        </SafeAreaView>
+      );
+    }
+  
+    if (!user?.isAdmin) return null;
+  
+    if (loading) {
+      return (
+        <SafeAreaView style={styles.container}>
+          <View style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={styles.loadingText}>Đang tải danh mục...</Text>
+          </View>
+        </SafeAreaView>
+      );
+    }
+
+  const handleBack = () => {
+    router.push('/admin/dashboard');
   };
-
-  if (!user?.isAdmin) return null;
-
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={styles.loadingText}>Đang tải danh mục...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Input
-          placeholder="Tìm kiếm danh mục..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={handleSearch}
-          leftIcon={<Search size={20} color={colors.textLight} />}
-          containerStyle={styles.searchInput}
-        />
+      <View style={[styles.header, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
+        <TouchableOpacity onPress={handleBack}>
+           <ArrowLeft size={24} color={colors.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+            <Input
+              placeholder="Tìm kiếm danh mục..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              leftIcon={<Search size={20} color={colors.textLight} />}
+              containerStyle={styles.searchInput}
+            />
+        </View>
       </View>
 
       <View style={styles.listHeader}>

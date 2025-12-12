@@ -6,11 +6,12 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Camera } from 'lucide-react-native';
+import { Camera, ChevronLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -40,7 +41,7 @@ const parseBackendError = (error: any): string => {
 export default function EditUserScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user: currentUser } = useUserStore();
+  const { user: currentUser, isLoading: isAuthLoading } = useUserStore();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -52,14 +53,12 @@ export default function EditUserScreen() {
   const [originalUser, setOriginalUser] = useState<any>(null);
 
   React.useEffect(() => {
-    if (!currentUser?.isAdmin) {
+    if (!isAuthLoading && !currentUser?.isAdmin) {
       router.replace('/');
     }
-  }, [currentUser]);
+  }, [currentUser, isAuthLoading]);
 
-  if (!currentUser?.isAdmin) {
-    return null;
-  }
+
 
   React.useEffect(() => {
     fetchUserDetails();
@@ -188,9 +187,37 @@ export default function EditUserScreen() {
     );
   };
 
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.container}>
+             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                 <ActivityIndicator size="large" color={colors.primary} />
+             </View>
+        </SafeAreaView>
+    );
+  }
+
+  if (!currentUser?.isAdmin) {
+    return null;
+  }
+
+  // Handle safe back navigation
+  const handleBack = () => {
+    router.push('/admin/users');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBack}
+          >
+              <ChevronLeft size={24} color={colors.text} />
+          </TouchableOpacity>
+        </View>
         <View style={styles.content}>
           <Card style={styles.section}>
             <Text style={styles.sectionTitle}>Ảnh đại diện</Text>
@@ -398,5 +425,15 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     marginHorizontal: 4,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  backButton: {
+    padding: 8,
+    marginLeft: -8,
   },
 });

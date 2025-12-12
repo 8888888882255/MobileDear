@@ -28,13 +28,14 @@ const API_URL = Constants.expoConfig?.extra?.apiUrl || 'http://192.168.1.5:5083'
 export default function EditCategoryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useUserStore();
+  const { user, isLoading: isAuthLoading } = useUserStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!user?.isAdmin) {
-    router.replace('/');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthLoading && !user?.isAdmin) {
+      router.replace('/');
+    }
+  }, [user, isAuthLoading]);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -178,6 +179,18 @@ export default function EditCategoryScreen() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.container}>
+             <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
+                 <ActivityIndicator size="large" color={colors.primary} />
+             </View>
+        </SafeAreaView>
+    );
+  }
+
+  if (!user?.isAdmin) return null;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -189,13 +202,17 @@ export default function EditCategoryScreen() {
     );
   }
 
+  const handleBack = () => {
+    router.push('/admin/categorys');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
           <Card style={styles.section}>
             <View style={styles.header}>
-              <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+              <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
                 <ArrowLeft size={24} color={colors.text} />
               </TouchableOpacity>
               <Text style={styles.sectionTitle}>Chỉnh sửa danh mục</Text>

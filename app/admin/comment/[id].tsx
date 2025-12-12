@@ -26,16 +26,20 @@ const DEFAULT_AVATAR = require('@/assets/images/icon.png');
 export default function CommentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useUserStore();
+  const { user, isLoading: isAuthLoading } = useUserStore();
 
   const [comment, setComment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user?.isAdmin) {
+    if (!isAuthLoading && !user?.isAdmin) {
       router.replace('/');
       return;
     }
+  }, [user, isAuthLoading]);
+
+  useEffect(() => {
+    if (!user?.isAdmin) return;
 
     const fetchComment = async () => {
       try {
@@ -89,6 +93,16 @@ export default function CommentDetailScreen() {
     );
   };
 
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.container}>
+            <ActivityIndicator size="large" color={colors.primary} />
+        </SafeAreaView>
+    );
+  }
+
+  if (!user?.isAdmin) return null;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -106,10 +120,14 @@ export default function CommentDetailScreen() {
     );
   }
 
+  const handleBack = () => {
+    router.push('/admin/comments');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack}>
           <ArrowLeft size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.title}>Chi tiết bình luận</Text>

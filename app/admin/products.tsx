@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
-import { Plus, Search, Edit, Trash2, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { Plus, Search, Edit, Trash2, ChevronUp, ChevronDown, ChevronLeft } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -44,7 +44,7 @@ type SanPham = {
 
 export default function AdminProductsScreen() {
   const router = useRouter();
-  const { user } = useUserStore();
+  const { user, isLoading: isAuthLoading } = useUserStore();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -55,10 +55,13 @@ export default function AdminProductsScreen() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Bảo vệ admin
-  if (!user?.isAdmin) {
-    router.replace('/');
-    return null;
-  }
+  useEffect(() => {
+    if (!isAuthLoading && !user?.isAdmin) {
+      router.replace('/');
+    }
+  }, [user, isAuthLoading]);
+
+
 
   // Load sản phẩm từ API
   const loadProducts = async () => {
@@ -296,6 +299,16 @@ export default function AdminProductsScreen() {
     </Card>
   );
 
+  if (isAuthLoading) {
+    return (
+        <SafeAreaView style={styles.center}>
+            <ActivityIndicator size="large" color={colors.primary} />
+        </SafeAreaView>
+    );
+  }
+
+  if (!user?.isAdmin) return null;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -305,10 +318,18 @@ export default function AdminProductsScreen() {
     );
   }
 
+  const handleBack = () => {
+    router.push('/admin/dashboard');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={{ padding: 4 }}>
+          <ChevronLeft size={24} color={colors.text} />
+        </TouchableOpacity>
+
         <Input
           placeholder="Tìm kiếm sản phẩm..."
           value={searchQuery}
@@ -316,9 +337,9 @@ export default function AdminProductsScreen() {
           leftIcon={<Search size={20} color={colors.textLight} />}
           containerStyle={{
             flex: 1,
-            height: 50
+            height: 50,
+            marginBottom: 0
           }}
-
         />
 
         <Button
