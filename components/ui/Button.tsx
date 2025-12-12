@@ -8,7 +8,8 @@ import {
   ViewStyle,
   TextStyle,
   TouchableOpacityProps,
-  View
+  View,
+  Platform,
 } from 'react-native';
 import colors from '@/constants/colors';
 
@@ -153,6 +154,11 @@ const buttonStyles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+      },
+    }),
   },
   primary: {
     backgroundColor: colors.primary,
