@@ -9,7 +9,7 @@
     "ios": "expo start --ios --tunnel",
     "web": "expo start --web --tunnel",
     "clean": "expo start -c",
-    "build:web": "expo export:web --output-dir dist"
+    "build:web": "npx expo export --platform web"
 
   },
   "dependencies": {
