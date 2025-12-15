@@ -235,7 +235,7 @@ export default function EditUserScreen() {
 
   // Handle safe back navigation
   const handleBack = () => {
-    router.push('/admin/users');
+    router.back();
   };
 
   return (

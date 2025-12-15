@@ -522,7 +522,7 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
   // Handle back navigation safely
   // Handle back navigation safely
   const handleBack = () => {
-    router.push('/admin/dashboard');
+    router.back();
   };
 
   return (

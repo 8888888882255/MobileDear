@@ -203,7 +203,7 @@ export default function EditCategoryScreen() {
   }
 
   const handleBack = () => {
-    router.push('/admin/categorys');
+    router.back();
   };
 
   return (

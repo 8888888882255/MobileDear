@@ -191,7 +191,7 @@ export default function NewCategoryScreen() {
   if (!user?.isAdmin) return null;
 
   const handleBack = () => {
-      router.push('/admin/categorys');
+    router.back();
   };
 
   return (

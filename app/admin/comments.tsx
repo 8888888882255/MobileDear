@@ -208,7 +208,7 @@ export default function AdminCommentsScreen() {
   };
 
   const handleBack = () => {
-    router.push('/admin/dashboard');
+    router.back();
   };
 
   return (

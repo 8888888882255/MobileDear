@@ -144,7 +144,7 @@ const getTypeColor = (loai: number): string => {
     }
 
   const handleBack = () => {
-    router.push('/admin/dashboard');
+    router.back();
   };
 
   return (

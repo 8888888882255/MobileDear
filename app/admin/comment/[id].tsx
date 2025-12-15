@@ -121,7 +121,7 @@ export default function CommentDetailScreen() {
   }
 
   const handleBack = () => {
-    router.push('/admin/comments');
+    router.back();
   };
 
   return (
