@@ -10,9 +10,8 @@ import {
   SafeAreaView,
   RefreshControl,
   ScrollView,
-  Platform,
-  Switch,
   TextInput,
+  Platform,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -29,10 +28,13 @@ import {
   Shield,
   Ban,
   User as UserIcon,
-  Mail,
-  MapPin,
   Calendar,
-  Phone
+  Phone,
+  Lock,
+  Unlock,
+  ShieldOff,
+  ShieldCheck,
+  Pencil,
 } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import colors from '@/constants/colors';
@@ -186,6 +188,24 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
     router.push(`/admin/user/${user.id}`);
   };
 
+  // Helper to map User object to Backend Model (PascalCase)
+  const mapToEditModel = (user: User, overrides: Partial<any> = {}) => {
+    return {
+        MaNguoiDung: user.rawData.maNguoiDung || user.id, // Ensure ID is present
+        HoTen: user.rawData.hoTen,
+        Email: user.rawData.email,
+        TaiKhoan: user.rawData.taiKhoan,
+        VaiTro: user.rawData.vaiTro,
+        TrangThai: user.rawData.trangThai,
+        GioiTinh: user.rawData.gioiTinh,
+        Sdt: user.rawData.sdt,
+        NgaySinh: user.rawData.ngaySinh,
+        TieuSu: user.rawData.tieuSu,
+        Avt: user.rawData.avt,
+        ...overrides // Apply changes (e.g. TrangThai, VaiTro)
+    };
+  };
+
   const handleDelete = (item: User) => {
     showDestructiveConfirm(
       'Xác nhận xóa',
@@ -199,13 +219,14 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
             text1: 'Thành công',
             text2: 'Đã xóa người dùng thành công!'
           });
-          // Optimistic local remove
+          // Update state ONLY after success
           setAllItems(prev => prev.filter(i => i.id !== item.id));
         } catch (error) {
+          const errorMessage = parseBackendError(error);
           Toast.show({
             type: 'error',
             text1: 'Lỗi',
-            text2: 'Không thể xóa người dùng.'
+            text2: errorMessage
           });
         }
       }
@@ -215,22 +236,13 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
   const handleToggleStatus = async (item: User) => {
     const isBanned = item.status === 'banned';
     const newStatus = isBanned ? 'active' : 'banned';
-    
-    // We are toggling Ban status here
-    // If active (1) -> ban (0). If banned (0) -> active (1).
+    // Active (1) -> Ban (0). Banned (0) -> Active (1).
     const newTrangThai = isBanned ? 1 : 0;
 
     try {
-        // Optimistic update
-        setAllItems(prev => prev.map(i => 
-            i.id === item.id ? { ...i, status: newStatus } : i
-        ));
+        // Construct correct payload with PascalCase
+        const updateData = mapToEditModel(item, { TrangThai: newTrangThai });
 
-        // Call API
-        const updateData = {
-            ...item.rawData,
-            TrangThai: newTrangThai
-        };
         await AuthService.updateUserProfile(Number(item.id), updateData);
         
         Toast.show({
@@ -238,12 +250,12 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
             text1: 'Thành công',
             text2: `Đã ${isBanned ? 'mở khóa' : 'khóa'} tài khoản ${item.name}`
         });
-    } catch (error) {
-        // Revert
+
+        // Update state ONLY after success
         setAllItems(prev => prev.map(i => 
-            i.id === item.id ? { ...i, status: item.status } : i
+            i.id === item.id ? { ...i, status: newStatus, rawData: { ...i.rawData, trangThai: newTrangThai } } : i
         ));
-        
+    } catch (error) {
         const errorMessage = parseBackendError(error);
         Toast.show({
             type: 'error',
@@ -251,6 +263,44 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
             text2: errorMessage
         });
     }
+  };
+
+  const handleToggleRole = async (item: User) => {
+    const isAdmin = item.isAdmin;
+    const newRole = isAdmin ? 2 : 1; // 1: Admin, 2: User
+    const actionText = isAdmin ? 'hạ quyền User' : 'thăng quyền Admin';
+
+    showConfirm(
+        'Xác nhận phân quyền',
+        `Bạn có chắc muốn ${actionText} cho "${item.name}"?`,
+        async () => {
+             try {
+                // Construct correct payload with PascalCase
+                const updateData = mapToEditModel(item, { VaiTro: newRole });
+
+                await AuthService.updateUserProfile(Number(item.id), updateData);
+                
+                Toast.show({
+                    type: 'success',
+                    text1: 'Thành công',
+                    text2: `Đã ${actionText} thành công!`
+                });
+
+                // Update state ONLY after success
+                setAllItems(prev => prev.map(i => 
+                    i.id === item.id ? { ...i, isAdmin: !isAdmin, rawData: { ...i.rawData, vaiTro: newRole } } : i
+                ));
+
+            } catch (error) {
+                const errorMessage = parseBackendError(error);
+                Toast.show({
+                    type: 'error',
+                    text1: 'Lỗi',
+                    text2: errorMessage
+                });
+            }
+        }
+    );
   };
 
   // --- Selection Mode Logic ---
@@ -305,7 +355,7 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
             
             if (action === 'delete') {
                 await Promise.all(ids.map(id => AuthService.deleteUser(Number(id))));
-                // Remove locally
+                // Update locally ONLY after success
                 setAllItems(prev => prev.filter(i => !ids.includes(i.id)));
             } else {
                 const newTrangThai = action === 'unban' ? 1 : 0;
@@ -314,16 +364,14 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
                 await Promise.all(ids.map(async (id) => {
                     const user = allItems.find(u => u.id === id);
                     if (user) {
-                         const updateData = {
-                            ...user.rawData,
-                            TrangThai: newTrangThai
-                        };
-                        await AuthService.updateUserProfile(Number(id), updateData);
+                         // Construct correct payload with PascalCase
+                         const updateData = mapToEditModel(user, { TrangThai: newTrangThai });
+                         await AuthService.updateUserProfile(Number(id), updateData);
                     }
                 }));
-                 // Update locally
+                 // Update locally ONLY after success
                  setAllItems(prev => prev.map(i => 
-                    ids.includes(i.id) ? { ...i, status: newStatus } : i
+                    ids.includes(i.id) ? { ...i, status: newStatus, rawData: { ...i.rawData, trangThai: newTrangThai } } : i
                 ));
             }
 
@@ -409,42 +457,49 @@ import { showDestructiveConfirm, showConfirm } from '@/src/utils/alert';
               {item.email}
             </Text>
             
-            <View style={styles.cardMeta}>
-              <View style={styles.roleContainer}>
-                 <UserIcon size={12} color={colors.textLight} />
-                 <Text style={styles.roleText}>{item.isAdmin ? 'Quản trị viên' : 'Người dùng'}</Text>
-              </View>
-              
-              {!isSelectionMode && (
-                <View style={styles.switchContainer}>
-                  <TouchableOpacity onPress={() => handleToggleStatus(item)}>
-                    <View 
-                      style={Platform.OS === 'web' ? { pointerEvents: 'none' } as any : undefined}
-                      pointerEvents={Platform.OS === 'web' ? undefined : 'none'}
-                    >
-                      <Switch
-                        value={!isBanned}
-                        onValueChange={() => {}}
-                        trackColor={{ false: colors.border, true: colors.success }}
-                        thumbColor="#fff"
-                        style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                </View>
-              )}
             </View>
-          </View>
         </TouchableOpacity>
 
         {!isSelectionMode && (
           <View style={styles.cardActions}>
+             {/* Role Button */}
+             <TouchableOpacity
+              style={[styles.actionButton, item.isAdmin ? styles.demoteButton : styles.promoteButton]}
+              onPress={() => handleToggleRole(item)}
+            >
+              {item.isAdmin ? (
+                  <ShieldOff size={18} color="#fff" />
+              ) : (
+                  <ShieldCheck size={18} color="#fff" />
+              )}
+            </TouchableOpacity>
+
+            {/* Edit Button */}
+            <TouchableOpacity
+              style={[styles.actionButton, styles.editButton]}
+              onPress={() => handleEdit(item)}
+            >
+              <Pencil size={18} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Status Button */}
+            <TouchableOpacity
+              style={[styles.actionButton, isBanned ? styles.unbanButton : styles.banButton]}
+              onPress={() => handleToggleStatus(item)}
+            >
+               {isBanned ? (
+                  <Unlock size={18} color="#fff" />
+              ) : (
+                  <Lock size={18} color="#fff" />
+              )}
+            </TouchableOpacity>
+
+            {/* Delete Button */}
             <TouchableOpacity
               style={[styles.actionButton, styles.deleteButton]}
               onPress={() => handleDelete(item)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Trash2 size={18} color={colors.error} />
+              <Trash2 size={18} color="#fff" />
             </TouchableOpacity>
           </View>
         )}
@@ -778,13 +833,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: colors.card,
     borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 0, // governed by list gap
+    overflow: 'visible', // Changed from hidden to allow shadows and interactions
+    marginBottom: 0,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    minHeight: Platform.select({ web: 'auto'}), // Adapt height
   },
   cardSelected: {
     backgroundColor: '#f0f9ff',
@@ -798,7 +854,6 @@ const styles = StyleSheet.create({
   },
   cardImageContainer: {
     width: 80,
-    minHeight: 80,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 10,
@@ -838,18 +893,20 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 12,
     justifyContent: 'center',
-    gap: 4,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    flexWrap: 'wrap', // Allow wrapping on small screens
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
-    flex: 1,
+    marginRight: 8,
+    flexShrink: 1, // Ensure text shrinks to prevent pushing siblings
   },
   bannedBadgeSmall: {
     backgroundColor: '#fee2e2',
@@ -866,41 +923,49 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textLight,
   },
-  cardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 4,
-  },
-  roleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.background,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  roleText: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  switchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   cardActions: {
-    justifyContent: 'center',
+    flexDirection: Platform.select({ web: 'row', default: 'column' }), // Row on Web, Column on Mobile
+    justifyContent: Platform.select({ web: 'flex-start', default: 'space-evenly' }),
     alignItems: 'center',
-    paddingRight: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderLeftWidth: 1,
     borderLeftColor: colors.border,
+    minWidth: Platform.select({ web: 160, default: 50 }), // Wider on Web for row
+    gap: Platform.select({ web: 8, default: 0 }), // Gap for row
+    backgroundColor: 'transparent',
+    zIndex: 10,
   },
   actionButton: {
-    padding: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: Platform.select({ web: 0, default: 4 }), // Vertical spacing only for column
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.5,
+    elevation: 2,
+  },
+  editButton: {
+    backgroundColor: '#3b82f6', // Blue-500
   },
   deleteButton: {
-    // specific styles if needed
+    backgroundColor: colors.error,
+  },
+  banButton: {
+      backgroundColor: '#f59e0b',
+  },
+  unbanButton: {
+      backgroundColor: colors.success,
+  },
+  promoteButton: {
+      backgroundColor: colors.primary,
+  },
+  demoteButton: {
+      backgroundColor: '#64748b',
   },
   bulkActions: {
     position: 'absolute',
@@ -908,7 +973,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     flexDirection: 'row',
-    backgroundColor: colors.text, // Dark bg
+    backgroundColor: colors.text,
     borderRadius: 16,
     padding: 12,
     justifyContent: 'space-around',
@@ -917,6 +982,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+    zIndex: 100, // Top z-index
   },
   bulkButton: {
     flexDirection: 'row',
@@ -938,6 +1004,6 @@ const styles = StyleSheet.create({
   bulkButtonText: {
     color: '#fff',
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 14
   },
 });
