@@ -1,5 +1,8 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
+import { ErrorScreen } from '@/components/ErrorScreen';
+import { AlertTriangle } from 'lucide-react-native';
+import colors from '@/constants/colors';
 
 interface Props {
   children: React.ReactNode;
@@ -94,59 +97,24 @@ export class ErrorBoundary extends React.Component<Props, State> {
     }
   }
 
+
+
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.container}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Đã xảy ra lỗi</Text>
-            <Text style={styles.subtitle}>
-              {this.state.error?.message || 'Lỗi không xác định'}
-            </Text>
-            {Platform.OS !== 'web' && (
-              <Text style={styles.description}>
-                Vui lòng kiểm tra nhật ký thiết bị để biết thêm chi tiết.
-              </Text>
-            )}
-          </View>
-        </View>
+        <ErrorScreen
+          title="Đã xảy ra lỗi"
+          message={this.state.error?.message || 'Lỗi không xác định'}
+          icon={<AlertTriangle size={64} color={colors.error || '#ef4444'} />}
+          actionButtonText="Thử lại"
+          onAction={() => this.setState({ hasError: false, error: null })}
+          showHomeButton={true}
+        />
       );
     }
 
     return this.props.children;
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    textAlign: 'center',
-    fontWeight: 'bold',
-    color: '#e53935',
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 12,
-  },
-});
 
 export default ErrorBoundary;
