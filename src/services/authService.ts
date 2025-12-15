@@ -272,14 +272,17 @@ export class AuthService {
          // React Native / Expo ImagePicker result
          // React Native / Expo ImagePicker result
          // @ts-ignore
-         formData.append('imageFile', {
+         const fileData = {
            uri: imageFile.uri,
            name: imageFile.fileName || imageFile.name || 'avatar.jpg',
            type: imageFile.mimeType || imageFile.type || 'image/jpeg',
-         });
+         };
+         formData.append('imageFile', fileData as any);
+         formData.append('file', fileData as any);
       } else if (typeof window !== 'undefined' && imageFile instanceof File) {
         // Web File object
         formData.append('imageFile', imageFile);
+        formData.append('file', imageFile);
       }
     }
     

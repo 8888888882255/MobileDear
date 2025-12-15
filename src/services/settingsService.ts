@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import {
   GiaoDien,
   GiaoDienCreate,
@@ -201,42 +202,75 @@ export class SettingsService {
     options?: { altText?: string; link?: string }
   ): Promise<Media> {
     const url = `${this.getApiUrl()}/GiaoDien/${giaoDienId}/upload-media`;
+    console.log('Upload URL:', url);
+    console.log('File object received:', file);
 
+    // Create FormData for [FromForm] binding
     const formData = new FormData();
-    // React Native needs { uri, name, type } for file upload
-    // If user passed a blob (web style), use it as is. 
-    // If valid RN file object, append it.
+
+    // Handle file upload with platform-specific logic
     if (file && typeof file === 'object' && 'uri' in file) {
-        // @ts-ignore
-        formData.append('file', {
-            uri: file.uri,
-            name: file.name || file.fileName || 'image.jpg',
-            type: file.type || 'image/jpeg'
-        });
+      if (Platform.OS === 'web') {
+        // For web: convert to blob for proper FormData handling
+        try {
+          console.log('Web platform detected, converting to blob');
+          const response = await fetch(file.uri);
+          const blob = await response.blob();
+          const fileName = file.name || file.fileName || `upload_${Date.now()}.jpg`;
+          console.log('Uploading file as blob:', fileName, blob.size, 'bytes');
+          // @ts-ignore
+          formData.append('file', blob, fileName);
+        } catch (error) {
+          console.error('Failed to convert file to blob on web:', error);
+          // Fallback to direct file append
+          formData.append('file', file);
+        }
+      } else {
+        // For native platforms: use {uri, name, type} format
+        console.log('Native platform detected, using uri/name/type format');
+        const fileData = {
+          uri: file.uri,
+          name: file.name || file.fileName || `upload_${Date.now()}.jpg`,
+          type: file.type || file.mimeType || 'image/jpeg',
+        };
+
+        console.log('Prepared file data for upload:', fileData);
+
+        // @ts-ignore - React Native FormData accepts this format
+        formData.append('file', fileData);
+      }
     } else {
-         formData.append('file', file);
+      console.log('Invalid file object, using fallback');
+      formData.append('file', file);
     }
 
+    // Add optional fields
     if (options?.altText) formData.append('altText', options.altText);
     if (options?.link) formData.append('link', options.link);
 
     const authHeaders = await AuthService.getAuthHeaders();
+    console.log('Auth headers:', authHeaders);
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         ...authHeaders,
-        // Content-Type is set automatically for FormData
+        // Don't set Content-Type for FormData - browser/native will set it with boundary
       },
       body: formData,
     });
 
+    console.log('Response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Upload failed: ${response.status}`);
+      console.error('Upload error response:', errorData);
+      throw new Error(errorData.message || errorData.title || `Upload failed: ${response.status}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log('Upload success:', result);
+    return result;
   }
 
   // ============ Helper Methods ============

@@ -109,7 +109,11 @@ export default function EditSettingScreen() {
   };
 
   const handlePickImage = async () => {
+    console.log('handlePickImage called');
+    
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    console.log('Permission result:', permissionResult);
+    
     if (!permissionResult.granted) {
       Toast.show({
         type: 'error',
@@ -125,24 +129,35 @@ export default function EditSettingScreen() {
       quality: 0.8,
     });
 
+
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
       await uploadImage(asset);
+    } else {
+      console.log('Image selection was cancelled or no asset found');
     }
   };
 
   const uploadImage = async (asset: ImagePicker.ImagePickerAsset) => {
-    if (!id) return;
+    
+    if (!id) {
+      console.error('No ID available for upload');
+      return;
+    }
 
     setIsUploading(true);
     try {
+      // Ensure we have all required file properties
       const file = {
         uri: asset.uri,
-        name: asset.fileName || 'upload.jpg',
+        name: asset.fileName || `upload_${Date.now()}.jpg`,
         type: asset.mimeType || 'image/jpeg',
       };
       
+      console.log('Calling SettingsService.uploadMedia...');
       await SettingsService.uploadMedia(Number(id), file);
+      console.log('Upload successful!');
+      
       Toast.show({
         type: 'success',
         text1: 'Thành công',
@@ -150,7 +165,11 @@ export default function EditSettingScreen() {
       });
       loadData(); // Reload to show new media
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Upload error details:', error);
+      console.error('Error type:', typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      
       Toast.show({
         type: 'error',
         text1: 'Lỗi',
@@ -158,6 +177,7 @@ export default function EditSettingScreen() {
       });
     } finally {
       setIsUploading(false);
+      console.log('Upload process completed');
     }
   };
 
