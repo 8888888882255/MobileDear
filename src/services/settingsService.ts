@@ -197,13 +197,26 @@ export class SettingsService {
    */
   static async uploadMedia(
     giaoDienId: number,
-    file: File | Blob,
+    file: any,
     options?: { altText?: string; link?: string }
   ): Promise<Media> {
     const url = `${this.getApiUrl()}/GiaoDien/${giaoDienId}/upload-media`;
 
     const formData = new FormData();
-    formData.append('file', file);
+    // React Native needs { uri, name, type } for file upload
+    // If user passed a blob (web style), use it as is. 
+    // If valid RN file object, append it.
+    if (file && typeof file === 'object' && 'uri' in file) {
+        // @ts-ignore
+        formData.append('file', {
+            uri: file.uri,
+            name: file.name || file.fileName || 'image.jpg',
+            type: file.type || 'image/jpeg'
+        });
+    } else {
+         formData.append('file', file);
+    }
+
     if (options?.altText) formData.append('altText', options.altText);
     if (options?.link) formData.append('link', options.link);
 

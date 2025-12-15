@@ -149,14 +149,24 @@ export default function EditUserScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false, // Disabled cropping
         quality: 0.8,
       });
 
       if (!result.canceled) {
-        setSelectedImage(result.assets[0]);
-        setAvatar(result.assets[0].uri);
+        const asset = result.assets[0];
+        // Client-side size check (5MB)
+        if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+             Toast.show({
+                type: 'error',
+                text1: 'Lỗi',
+                text2: 'Kích thước ảnh không được vượt quá 5MB'
+             });
+             return;
+        }
+
+        setSelectedImage(asset);
+        setAvatar(asset.uri);
       }
     }
   };

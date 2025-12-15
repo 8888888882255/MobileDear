@@ -270,11 +270,12 @@ export class AuthService {
         // specific logic for file object vs uri
       } else if (imageFile.uri) {
          // React Native / Expo ImagePicker result
+         // React Native / Expo ImagePicker result
          // @ts-ignore
          formData.append('imageFile', {
            uri: imageFile.uri,
-           name: imageFile.name || 'avatar.jpg',
-           type: imageFile.type || 'image/jpeg',
+           name: imageFile.fileName || imageFile.name || 'avatar.jpg',
+           type: imageFile.mimeType || imageFile.type || 'image/jpeg',
          });
       } else if (typeof window !== 'undefined' && imageFile instanceof File) {
         // Web File object

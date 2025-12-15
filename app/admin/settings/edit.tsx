@@ -121,24 +121,28 @@ export default function EditSettingScreen() {
 
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
+      allowsEditing: false,
       quality: 0.8,
     });
 
     if (!result.canceled && result.assets[0]) {
-      await uploadImage(result.assets[0].uri);
+      const asset = result.assets[0];
+      await uploadImage(asset);
     }
   };
 
-  const uploadImage = async (uri: string) => {
+  const uploadImage = async (asset: ImagePicker.ImagePickerAsset) => {
     if (!id) return;
 
     setIsUploading(true);
     try {
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const file = {
+        uri: asset.uri,
+        name: asset.fileName || 'upload.jpg',
+        type: asset.mimeType || 'image/jpeg',
+      };
       
-      await SettingsService.uploadMedia(Number(id), blob);
+      await SettingsService.uploadMedia(Number(id), file);
       Toast.show({
         type: 'success',
         text1: 'Thành công',
