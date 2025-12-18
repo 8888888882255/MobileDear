@@ -7,7 +7,6 @@ import {
   ScrollView,
   SafeAreaView,
   TouchableOpacity,
-  Alert,
   Image,
   FlatList,
   Platform,
@@ -26,12 +25,11 @@ import { AuthService } from '@/src/services/authService';
 
 const API_URL = Constants?.expoConfig?.extra?.apiUrl || 'https://fasion-a-b9cvdggjhudzbfe8.southeastasia-01.azurewebsites.net';
 
-// Kiểu ảnh hỗ trợ tất cả nền tảng
 type SelectedImage = {
   uri: string;
   name: string;
   type: string;
-  file?: File; // Chỉ có trên Web
+  file?: File;
 };
 
 export default function NewProductScreen() {
@@ -47,7 +45,6 @@ export default function NewProductScreen() {
   const [images, setImages] = useState<SelectedImage[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Danh mục
   const [loaiList, setLoaiList] = useState<{ maDanhMuc: number; tenDanhMuc: string }[]>([]);
   const [thuongHieuList, setThuongHieuList] = useState<{ maDanhMuc: number; tenDanhMuc: string }[]>([]);
   const [hashtagList, setHashtagList] = useState<{ maDanhMuc: number; tenDanhMuc: string }[]>([]);
@@ -56,7 +53,6 @@ export default function NewProductScreen() {
   const [selectedMaThuongHieu, setSelectedMaThuongHieu] = useState<number | null>(null);
   const [selectedMaHashtag, setSelectedMaHashtag] = useState<number | null>(null);
 
-  // Giới tính
   const [gioiTinh, setGioiTinh] = useState<string>('Mặc Định');
 
   const gioiTinhMap: Record<string, number> = {
@@ -66,7 +62,6 @@ export default function NewProductScreen() {
     'Khác': 3,
   };
 
-  // Bảo vệ route admin
   if (!user?.isAdmin) {
     router.replace('/');
     return null;
@@ -102,10 +97,8 @@ export default function NewProductScreen() {
     }
   };
 
-  // CHỌN ẢNH – HOẠT ĐỘNG TRÊN WEB + MOBILE + DESKTOP
   const pickImages = async () => {
     if (Platform.OS === 'web') {
-      // Web: dùng input file
       const input = document.createElement('input');
       input.type = 'file';
       input.multiple = true;
@@ -129,7 +122,6 @@ export default function NewProductScreen() {
       return;
     }
 
-    // Mobile & Desktop (Android/iOS/Windows/macOS)
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Toast.show({
@@ -149,12 +141,18 @@ export default function NewProductScreen() {
 
     if (!result.canceled && result.assets) {
       const newImages: SelectedImage[] = result.assets.map(asset => {
-        const fileName = asset.uri.split('/').pop() || `image_${Date.now()}.jpg`;
-        const cleanUri = Platform.OS === 'ios' ? asset.uri.replace('file://', '') : asset.uri;
+        // Ưu tiên fileName và mimeType từ asset (có sẵn ở Expo mới)
+        let fileName = asset.fileName || asset.uri.split('/').pop() || `image_${Date.now()}.jpg`;
+
+        // Đảm bảo có phần mở rộng file hợp lệ
+        if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(fileName)) {
+          fileName += '.jpg';
+        }
+
         return {
           uri: asset.uri,
           name: fileName,
-          type: asset.type || 'image/jpeg',
+          type: asset.mimeType || 'image/jpeg',
         };
       });
       setImages(prev => [...prev, ...newImages]);
@@ -197,14 +195,12 @@ export default function NewProductScreen() {
     return true;
   };
 
-  // GỬI DỮ LIỆU – HOẠT ĐỘNG TRÊN TẤT CẢ NỀN TẢNG
   const handleSave = async () => {
     if (!validateForm()) return;
     setIsSaving(true);
 
     const formData = new FormData();
 
-    // Text fields
     formData.append('TenSanPham', name.trim());
     formData.append('MoTa', description.trim());
     formData.append('MaVach', maVach.trim());
@@ -216,13 +212,11 @@ export default function NewProductScreen() {
     formData.append('SoLuong', stock);
     if (selectedMaHashtag) formData.append('MaHashtag', selectedMaHashtag.toString());
 
-    // Images – tên field đúng là "Images"
+    // Sử dụng đúng tên field "Images" theo tài liệu API
     images.forEach((img) => {
       if (Platform.OS === 'web' && img.file) {
-        // Web: dùng File object thật
         formData.append('Images', img.file, img.name);
       } else {
-        // Mobile & Desktop
         formData.append('Images', {
           uri: img.uri,
           name: img.name,
@@ -237,23 +231,23 @@ export default function NewProductScreen() {
         method: 'POST',
         headers: {
           ...authHeaders,
-          // Content-Type is set automatically for FormData
+          // Không set Content-Type để React Native tự thêm boundary đúng
         },
         body: formData,
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Server error:', errorText);
-        throw new Error('Tạo sản phẩm thất bại: ' + errorText.substring(0, 200));
+        throw new Error(errorText || 'Tạo sản phẩm thất bại');
       }
 
       Toast.show({
         type: 'success',
         text1: 'Thành công!',
         text2: 'Sản phẩm và tất cả hình ảnh đã được tạo thành công!',
+        onHide: () => router.back(),
       });
-      router.back();
+      setTimeout(() => router.back(), 1000);
     } catch (error: any) {
       console.error('Upload failed:', error);
       Toast.show({
@@ -270,7 +264,6 @@ export default function NewProductScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
 
-        {/* Thông tin cơ bản */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Thông Tin Cơ Bản</Text>
           <Input label="Tên Sản Phẩm" placeholder="Nhập tên..." value={name} onChangeText={setName} />
@@ -285,11 +278,9 @@ export default function NewProductScreen() {
           <Input label="Mã Vạch" placeholder="Nhập mã vạch" value={maVach} onChangeText={setMaVach} />
           <Input label="Giá Bán" placeholder="0.00" value={price} onChangeText={setPrice} keyboardType="decimal-pad" />
           <Input label="Giá Sale (Tùy chọn)" placeholder="0.00" value={discountPrice} onChangeText={setDiscountPrice} keyboardType="decimal-pad" />
-          
           <Input label="Số Lượng Tồn Kho" placeholder="0" value={stock} onChangeText={setStock} keyboardType="number-pad" />
         </Card>
 
-        {/* Giới tính */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Giới Tính</Text>
           <View style={styles.categoryButtons}>
@@ -307,7 +298,6 @@ export default function NewProductScreen() {
           </View>
         </Card>
 
-        {/* Loại sản phẩm */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Loại Sản Phẩm</Text>
           <View style={styles.chipContainer}>
@@ -325,7 +315,6 @@ export default function NewProductScreen() {
           </View>
         </Card>
 
-        {/* Thương hiệu */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Thương Hiệu</Text>
           <View style={styles.chipContainer}>
@@ -343,7 +332,6 @@ export default function NewProductScreen() {
           </View>
         </Card>
 
-        {/* Hashtag (tùy chọn) */}
         <Card style={styles.section}>
           <Text style={styles.sectionTitle}>Hashtag (Tùy chọn)</Text>
           <View style={styles.chipContainer}>
@@ -361,7 +349,6 @@ export default function NewProductScreen() {
           </View>
         </Card>
 
-        {/* Hình ảnh */}
         <Card style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Hình Ảnh ({images.length})</Text>
@@ -392,7 +379,6 @@ export default function NewProductScreen() {
           />
         </Card>
 
-        {/* Nút hành động */}
         <View style={styles.actions}>
           <Button title="Hủy" variant="outline" onPress={() => router.back()} style={styles.actionButton} />
           <Button

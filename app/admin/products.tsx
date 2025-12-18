@@ -352,7 +352,6 @@ export default function AdminProductsScreen() {
             paddingVertical: 0,
             justifyContent: 'center',
             alignItems: 'center',
-            marginTop: -15,     // 🔥 đẩy nút lên trên 10px
           }}
         />
 
