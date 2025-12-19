@@ -64,6 +64,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({
   };
 
   const scrollToIndex = (index: number) => {
+    if (index < 0 || index >= banners.length) return;
     if (flatListRef.current) {
       flatListRef.current.scrollToIndex({
         index,
@@ -92,7 +93,7 @@ export const BannerCarousel: React.FC<BannerCarouselProps> = ({
   useEffect(() => {
     startAutoPlay();
     return () => stopAutoPlay();
-  }, [activeIndex]);
+  }, [activeIndex, banners.length, autoPlay, autoPlayInterval]);
 
   const handleBannerPress = (banner: Banner) => {
     router.push(banner.link as Href<string>);
