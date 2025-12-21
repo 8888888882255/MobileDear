@@ -104,8 +104,8 @@ export default function LoginScreen() {
 
   const openAppStore = () => {
     const appStoreUrl = Platform.OS === 'ios'
-      ? 'https://drive.google.com/drive/folders/1Uhu5ungcN3tA7PeYCDkmxCiQtOZaUVhs?usp=sharing' // Replace with actual App Store URL
-      : 'https://drive.google.com/drive/folders/1Uhu5ungcN3tA7PeYCDkmxCiQtOZaUVhs?usp=sharing'; // Replace with actual Play Store URL
+      ? 'https://drive.google.com/drive/folders/1TNX9wV5uKJMHm77W_xB3fRV7KoipBaOH?usp=sharing' // Replace with actual App Store URL
+      : 'https://drive.google.com/drive/folders/1TNX9wV5uKJMHm77W_xB3fRV7KoipBaOH?usp=sharing'; // Replace with actual Play Store URL
 
     if (Platform.OS === 'web') {
       window.open(appStoreUrl, '_blank');
