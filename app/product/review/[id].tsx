@@ -85,6 +85,13 @@ export default function ProductReviewScreen() {
     setImages(images.filter((_, i) => i !== index));
   };
 
+  // ✅ HÀM MỚI: Convert URI sang Blob cho Web
+  const uriToBlob = async (uri: string): Promise<Blob> => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return blob;
+  };
+
   const handleSubmitReview = async () => {
     if (!user) {
       Toast.show({
@@ -113,39 +120,60 @@ export default function ProductReviewScreen() {
 
     setIsSubmitting(true);
 
-    const formData = new FormData();
-
-    // ĐÚNG 100% NHƯ CURL CỦA BẠN
-    if (title.trim()) formData.append('TieuDe', title.trim());
-    formData.append('NoiDung', review.trim());
-    formData.append('DanhGia', rating.toString());
-    formData.append('TrangThai', '1');
-    formData.append('MaNguoiDung', (user.rawData?.maNguoiDung || user.id).toString());
-    formData.append('MaSanPham', productId);
-
-    // Nhiều ảnh → field tên là "Images"
-    images.forEach((image) => {
-      const uri = image.uri;
-      const filename = uri.split('/').pop() || 'photo.jpg';
-      const match = /\.(\w+)$/.exec(filename);
-      const ext = match ? match[1].toLowerCase() : 'jpg';
-      const type = ext === 'png' ? 'image/png' : 'image/jpeg';
-
-      formData.append('Images', {
-        uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
-        name: filename,
-        type,
-      } as any);
-    });
-
-    const authHeaders = await AuthService.getAuthHeaders();
-
     try {
+      const formData = new FormData();
+
+      // Thêm các field text
+      if (title.trim()) formData.append('TieuDe', title.trim());
+      formData.append('NoiDung', review.trim());
+      formData.append('DanhGia', rating.toString());
+      formData.append('TrangThai', '1');
+      formData.append('MaNguoiDung', (user.rawData?.maNguoiDung || user.id).toString());
+      formData.append('MaSanPham', productId);
+
+      // ✅ XỬ LÝ ẢNH: Phân biệt Web vs Mobile
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        const uri = image.uri;
+        const filename = uri.split('/').pop() || `photo_${i}.jpg`;
+        const match = /\.(\w+)$/.exec(filename);
+        const ext = match ? match[1].toLowerCase() : 'jpg';
+        const type = ext === 'png' ? 'image/png' : 'image/jpeg';
+
+        if (Platform.OS === 'web') {
+          // ✅ WEB: Convert URI sang Blob
+          try {
+            const blob = await uriToBlob(uri);
+            // Tạo File object từ Blob (giống như upload file thật)
+            const file = new File([blob], filename, { type });
+            formData.append('Images', file);
+          } catch (error) {
+            console.error('Lỗi convert image trên web:', error);
+            Toast.show({
+              type: 'error',
+              text1: 'Lỗi xử lý ảnh',
+              text2: `Không thể xử lý ảnh ${i + 1}`,
+            });
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          // ✅ MOBILE: Dùng object { uri, name, type }
+          formData.append('Images', {
+            uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+            name: filename,
+            type,
+          } as any);
+        }
+      }
+
+      const authHeaders = await AuthService.getAuthHeaders();
+
       const response = await fetch(`${API_URL}/api/BinhLuan`, {
         method: 'POST',
         headers: authHeaders,
         body: formData,
-        // Không set Content-Type → trình duyệt tự thêm boundary
+        // Không set Content-Type → browser tự thêm boundary
       });
 
       if (response.ok) {
@@ -157,7 +185,7 @@ export default function ProductReviewScreen() {
         setTimeout(() => router.back(), 1500);
       } else {
         const error = await response.text();
-        console.log('Lỗi server:', error);
+        console.error('Lỗi server:', error);
         Toast.show({
           type: 'error',
           text1: 'Gửi thất bại',
@@ -165,7 +193,7 @@ export default function ProductReviewScreen() {
         });
       }
     } catch (err) {
-      console.log('Network error:', err);
+      console.error('Network error:', err);
       Toast.show({
         type: 'error',
         text1: 'Lỗi mạng',
@@ -182,8 +210,6 @@ export default function ProductReviewScreen() {
 
       <SafeAreaView style={styles.container}>
         <ScrollView showsVerticalScrollIndicator={false}>
-
-
           {/* Đánh giá sao */}
           <View style={styles.ratingContainer}>
             <Text style={styles.sectionTitle}>Đánh giá của bạn</Text>

@@ -212,9 +212,7 @@ export default function EditCategoryScreen() {
         <View style={styles.content}>
           <Card style={styles.section}>
             <View style={styles.header}>
-              <TouchableOpacity onPress={handleBack} style={styles.backBtn}>
-                <ArrowLeft size={24} color={colors.text} />
-              </TouchableOpacity>
+
               <Text style={styles.sectionTitle}>Chỉnh sửa danh mục</Text>
             </View>
 

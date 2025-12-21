@@ -326,9 +326,7 @@ export default function AdminProductsScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack} style={{ padding: 4 }}>
-          <ChevronLeft size={24} color={colors.text} />
-        </TouchableOpacity>
+
 
         <Input
           placeholder="Tìm kiếm sản phẩm..."

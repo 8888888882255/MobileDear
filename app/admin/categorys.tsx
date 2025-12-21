@@ -150,9 +150,7 @@ const getTypeColor = (loai: number): string => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={[styles.header, { flexDirection: 'row', gap: 12, alignItems: 'center' }]}>
-        <TouchableOpacity onPress={handleBack}>
-           <ArrowLeft size={24} color={colors.text} />
-        </TouchableOpacity>
+
         <View style={{ flex: 1 }}>
             <Input
               placeholder="Tìm kiếm danh mục..."
